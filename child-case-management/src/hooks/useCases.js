@@ -1,149 +1,181 @@
+// src/hooks/useCases.js
 import { useState, useCallback } from 'react';
-import { useQuery, useMutation, useQueryClient } from 'react-query';
-import { caseService } from '../services/case.service';
-import toast from 'react-hot-toast';
+import { useLocalStorage } from './useLocalStorage';
 
+/**
+ * Custom hook for managing abuse cases
+ */
 export const useCases = () => {
-  const queryClient = useQueryClient();
-  const [filters, setFilters] = useState({});
+  // Store cases in localStorage
+  const { 
+    value: cases, 
+    setValue: setCases,
+    update: updateCase,
+    remove: removeCase,
+    push: addCase
+  } = useLocalStorageArray('abuse_cases', []);
 
-  // Fetch cases with filters
-  const {
-    data: cases,
-    isLoading,
-    error,
-    refetch,
-  } = useQuery(
-    ['cases', filters],
-    () => caseService.getCases(filters),
-    {
-      keepPreviousData: true,
-      staleTime: 60000,
+  // Current case being viewed/edited
+  const [currentCase, setCurrentCase] = useState(null);
+  
+  // Search state
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+
+  /**
+   * Create a new case
+   */
+  const createCase = useCallback((caseData) => {
+    const newCase = {
+      id: `CASE-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      ...caseData,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      status: 'Reported',
+      caseNumber: `C${cases.length + 1}`.padStart(6, '0')
+    };
+    
+    addCase(newCase);
+    return newCase;
+  }, [addCase, cases.length]);
+
+  /**
+   * Update an existing case
+   */
+  const updateCaseById = useCallback((id, updates) => {
+    const index = cases.findIndex(c => c.id === id);
+    if (index !== -1) {
+      updateCase(index, {
+        ...cases[index],
+        ...updates,
+        updatedAt: new Date().toISOString()
+      });
     }
-  );
+  }, [cases, updateCase]);
 
-  // Fetch case by ID
-  const useCase = (caseId) => {
-    return useQuery(
-      ['case', caseId],
-      () => caseService.getCaseById(caseId),
-      {
-        enabled: !!caseId,
-        staleTime: 60000,
+  /**
+   * Delete a case
+   */
+  const deleteCase = useCallback((id) => {
+    const index = cases.findIndex(c => c.id === id);
+    if (index !== -1) {
+      removeCase(index);
+    }
+  }, [cases, removeCase]);
+
+  /**
+   * Search cases
+   */
+  const searchCases = useCallback((term) => {
+    setSearchTerm(term);
+    
+    if (!term.trim()) {
+      setSearchResults([]);
+      return [];
+    }
+    
+    const results = cases.filter(caseItem => {
+      const searchLower = term.toLowerCase();
+      return (
+        caseItem.childName?.toLowerCase().includes(searchLower) ||
+        caseItem.perpetratorName?.toLowerCase().includes(searchLower) ||
+        caseItem.caseNumber?.toLowerCase().includes(searchLower) ||
+        caseItem.status?.toLowerCase().includes(searchLower) ||
+        caseItem.id?.toLowerCase().includes(searchLower)
+      );
+    });
+    
+    setSearchResults(results);
+    return results;
+  }, [cases]);
+
+  /**
+   * Get case statistics
+   */
+  const getCaseStats = useCallback(() => {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+    
+    const stats = {
+      total: cases.length,
+      byYear: {},
+      byMonth: {},
+      byType: {},
+      byStatus: {}
+    };
+    
+    cases.forEach(caseItem => {
+      const date = new Date(caseItem.createdAt);
+      const year = date.getFullYear();
+      const month = date.getMonth();
+      const abuseType = caseItem.abuseType || 'Unknown';
+      const status = caseItem.status || 'Unknown';
+      
+      // Count by year
+      stats.byYear[year] = (stats.byYear[year] || 0) + 1;
+      
+      // Count by month for current year
+      if (year === currentYear) {
+        stats.byMonth[month] = (stats.byMonth[month] || 0) + 1;
       }
-    );
-  };
+      
+      // Count by abuse type
+      stats.byType[abuseType] = (stats.byType[abuseType] || 0) + 1;
+      
+      // Count by status
+      stats.byStatus[status] = (stats.byStatus[status] || 0) + 1;
+    });
+    
+    return stats;
+  }, [cases]);
 
-  // Register new case mutation
-  const registerCaseMutation = useMutation(
-    (caseData) => caseService.registerCase(caseData),
-    {
-      onSuccess: () => {
-        toast.success('Case registered successfully');
-        queryClient.invalidateQueries(['cases']);
-        queryClient.invalidateQueries(['dashboard']);
-      },
-      onError: (error) => {
-        toast.error(error.message || 'Failed to register case');
-      },
-    }
-  );
+  /**
+   * Get cases by status
+   */
+  const getCasesByStatus = useCallback((status) => {
+    return cases.filter(caseItem => caseItem.status === status);
+  }, [cases]);
 
-  // Update case mutation
-  const updateCaseMutation = useMutation(
-    ({ id, data }) => caseService.updateCase(id, data),
-    {
-      onSuccess: (_, variables) => {
-        toast.success('Case updated successfully');
-        queryClient.invalidateQueries(['case', variables.id]);
-        queryClient.invalidateQueries(['cases']);
-      },
-      onError: (error) => {
-        toast.error(error.message || 'Failed to update case');
-      },
-    }
-  );
-
-  // Delete case mutation
-  const deleteCaseMutation = useMutation(
-    (id) => caseService.deleteCase(id),
-    {
-      onSuccess: () => {
-        toast.success('Case deleted successfully');
-        queryClient.invalidateQueries(['cases']);
-      },
-      onError: (error) => {
-        toast.error(error.message || 'Failed to delete case');
-      },
-    }
-  );
-
-  // Assign case mutation
-  const assignCaseMutation = useMutation(
-    ({ caseId, focalPersonId }) => caseService.assignCase(caseId, focalPersonId),
-    {
-      onSuccess: (_, variables) => {
-        toast.success('Case assigned successfully');
-        queryClient.invalidateQueries(['case', variables.caseId]);
-      },
-      onError: (error) => {
-        toast.error(error.message || 'Failed to assign case');
-      },
-    }
-  );
-
-  // Update case status mutation
-  const updateCaseStatusMutation = useMutation(
-    ({ caseId, status }) => caseService.updateCaseStatus(caseId, status),
-    {
-      onSuccess: (_, variables) => {
-        toast.success('Case status updated successfully');
-        queryClient.invalidateQueries(['case', variables.caseId]);
-      },
-      onError: (error) => {
-        toast.error(error.message || 'Failed to update case status');
-      },
-    }
-  );
-
-  // Search cases
-  const searchCases = useCallback(async (searchParams) => {
-    try {
-      return await caseService.searchCases(searchParams);
-    } catch (error) {
-      toast.error(error.message || 'Search failed');
-      throw error;
-    }
-  }, []);
-
-  // Get case statistics
-  const getCaseStats = useCallback(async () => {
-    try {
-      return await caseService.getCaseStats();
-    } catch (error) {
-      console.error('Failed to fetch case stats:', error);
-      return null;
-    }
-  }, []);
+  /**
+   * Get recent cases
+   */
+  const getRecentCases = useCallback((limit = 10) => {
+    return [...cases]
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      .slice(0, limit);
+  }, [cases]);
 
   return {
-    cases: cases?.data || [],
-    pagination: cases?.pagination,
-    isLoading,
-    error,
-    filters,
-    setFilters,
-    refetch,
-    useCase,
-    registerCase: registerCaseMutation.mutateAsync,
-    updateCase: updateCaseMutation.mutateAsync,
-    deleteCase: deleteCaseMutation.mutateAsync,
-    assignCase: assignCaseMutation.mutateAsync,
-    updateCaseStatus: updateCaseStatusMutation.mutateAsync,
+    // Data
+    cases,
+    currentCase,
+    searchTerm,
+    searchResults,
+    
+    // Actions
+    createCase,
+    updateCase: updateCaseById,
+    deleteCase,
+    setCurrentCase,
+    
+    // Search
     searchCases,
+    clearSearch: () => {
+      setSearchTerm('');
+      setSearchResults([]);
+    },
+    
+    // Statistics
     getCaseStats,
-    isRegistering: registerCaseMutation.isLoading,
-    isUpdating: updateCaseMutation.isLoading,
-    isDeleting: deleteCaseMutation.isLoading,
+    getCasesByStatus,
+    getRecentCases,
+    
+    // Helper
+    getCaseById: useCallback((id) => 
+      cases.find(c => c.id === id), [cases]
+    ),
   };
 };
+
+export default useCases;
