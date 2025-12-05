@@ -49,15 +49,15 @@ button {
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
-  background-color: #1a1a1a;
+  background-color: #000000;
   cursor: pointer;
   transition: border-color 0.25s;
-  transition-duration: 0.5s;
-  transition: smooth;
+  transition: transform 0.3s ease-in-out;
 }
 button:hover {
   border-color: #646cff;
   transform: scale(1.05);
+  
 }
 button:focus,
 button:focus-visible {
