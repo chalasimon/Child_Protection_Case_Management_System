@@ -1,11 +1,7 @@
 import React from 'react';
 import { Box, Container, Paper, Typography } from '@mui/material';
-import { Outlet } from 'react-router-dom';
-import { useTheme } from '@mui/material/styles';
 
-const AuthLayout = () => {
-  const theme = useTheme();
-
+const AuthLayout = ({ children }) => {
   return (
     <Box
       sx={{
@@ -63,7 +59,7 @@ const AuthLayout = () => {
                 <path d="M12 1L3 5V11C3 16.55 6.84 21.74 12 23C17.16 21.74 21 16.55 21 11V5L12 1ZM12 11H19C18.47 16.11 15.72 20.78 12 21.93C8.28 20.78 5.53 16.11 5 11H12V7L17 10L12 13V11Z" />
               </svg>
             </Box>
-            
+
             <Typography
               variant="h4"
               component="h1"
@@ -78,34 +74,23 @@ const AuthLayout = () => {
             >
               ChildSafe
             </Typography>
-            
+
             <Typography variant="body1" color="text.secondary">
               Child Protection Case Management System
             </Typography>
           </Box>
 
-          {/* Form Content */}
+          {/* Render children directly */}
           <Box sx={{ position: 'relative', zIndex: 1 }}>
-            <Outlet />
+            {children}
           </Box>
 
           {/* Footer */}
           <Box sx={{ mt: 4, pt: 3, borderTop: '1px solid', borderColor: 'divider' }}>
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              align="center"
-              display="block"
-            >
+            <Typography variant="caption" color="text.secondary" align="center" display="block">
               © {new Date().getFullYear()} Child Protection System
             </Typography>
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              align="center"
-              display="block"
-              sx={{ mt: 0.5 }}
-            >
+            <Typography variant="caption" color="text.secondary" align="center" display="block" sx={{ mt: 0.5 }}>
               A secure platform for child protection professionals
             </Typography>
           </Box>

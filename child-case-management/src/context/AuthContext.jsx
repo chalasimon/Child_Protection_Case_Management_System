@@ -60,12 +60,16 @@ export const AuthProvider = ({ children }) => {
       try {
         const storedUser = authService.getStoredUser();
         if (storedUser && authService.isAuthenticated()) {
-          // Verify token
+        try {
           const profile = await authService.getProfile();
           dispatch({ type: 'LOGIN_SUCCESS', payload: { user: profile } });
-        } else {
+        } catch {
           dispatch({ type: 'SET_LOADING', payload: false });
         }
+      } else {
+        dispatch({ type: 'SET_LOADING', payload: false });
+      }
+
       } catch (error) {
         authService.clearAuth();
         dispatch({ type: 'SET_LOADING', payload: false });
