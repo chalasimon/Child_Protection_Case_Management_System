@@ -52,9 +52,12 @@ button {
   background-color: #1a1a1a;
   cursor: pointer;
   transition: border-color 0.25s;
+  transition-duration: 0.5s;
+  transition: smooth;
 }
 button:hover {
   border-color: #646cff;
+  transform: scale(1.05);
 }
 button:focus,
 button:focus-visible {

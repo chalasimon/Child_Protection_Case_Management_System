@@ -103,93 +103,90 @@ const LandingPage = () => {
       </Box>
       
       {/* Features Section */}
-      <Container maxWidth="lg" sx={{ mb: 10 }}>
-  {/* Section Header */}
-  <Typography variant="h3" align="center" gutterBottom sx={{ fontWeight: 700 }}>
-    Key Features
-  </Typography>
+      <Box sx={{ bgcolor: "#f0f6ff", py: 10 }}>
+  <Container maxWidth="lg">
+    {/* Section Header */}
+    <Typography variant="h3" color='black' align="center" gutterBottom sx={{ fontWeight: 700 }}>
+      Key Features
+    </Typography>
 
-  <Typography
-    variant="h6"
-    align="center"
-    color="text.secondary"
-    sx={{ mb: 6, maxWidth: 700, mx: "auto" }}
-  >
-    Everything you need to manage and track child protection cases effectively
-  </Typography>
+    <Typography
+      variant="h6"
+      align="center"
+      color="text.secondary"
+      sx={{ mb: 6, maxWidth: 700, mx: "auto" }}
+    >
+      Everything you need to manage and track child protection cases effectively
+    </Typography>
 
-  {/* Features Grid */}
-  <Grid
-    container
-    spacing={4}
-    justifyContent="center"
-  >
-    {features.map((feature, index) => (
-      <Grid
-        item
-        xs={12}
-        sm={6}
-        md={3}
-        key={index}
-        sx={{ display: "flex", justifyContent: "center" }}
-      >
-        <Paper
-          elevation={0}
-          sx={{
-            p: 4,
-            borderRadius: 4,
-            height: "100%",
-            width: "100%",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            textAlign: "center",
-
-            /* Glass effect */
-            backdropFilter: "blur(8px)",
-            background: "rgba(255, 255, 255, 0.7)",
-            border: "1px solid rgba(255, 255, 255, 0.4)",
-
-            boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
-
-            transition: "all 0.3s ease",
-            "&:hover": {
-              transform: "translateY(-10px)",
-              boxShadow: "0 12px 28px rgba(0,0,0,0.12)",
-              background: "rgba(255, 255, 255, 0.9)",
-            },
-          }}
+    {/* Features Grid */}
+    <Grid container spacing={4} justifyContent="center">
+      {features.map((feature, index) => (
+        <Grid
+          item
+          xs={12}
+          sm={6}
+          md={3}
+          key={index}
+          sx={{ display: "flex", justifyContent: "center" }}
         >
-          {/* Icon Circle */}
-          <Box
+          <Paper
+            elevation={0}
             sx={{
-              mb: 2,
-              width: 64,
-              height: 64,
-              borderRadius: "50%",
-              backgroundColor: "primary.light",
-              color: "primary.main",
+              p: 4,
+              borderRadius: 4,
+              height: "100%",
+              width: "100%",
               display: "flex",
+              flexDirection: "column",
               alignItems: "center",
-              justifyContent: "center",
-              fontSize: 32,
+              textAlign: "center",
+
+              /* Glass effect */
+              backdropFilter: "blur(8px)",
+              background: "rgba(255, 255, 255, 0.7)",
+              border: "1px solid rgba(255, 255, 255, 0.4)",
+              boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
+
+              transition: "all 0.3s ease",
+              "&:hover": {
+                transform: "translateY(-10px)",
+                boxShadow: "0 12px 28px rgba(0,0,0,0.12)",
+                background: "rgba(255, 255, 255, 0.9)",
+              },
             }}
           >
-            {feature.icon}
-          </Box>
+            {/* Icon Circle */}
+            <Box
+              sx={{
+                mb: 2,
+                width: 64,
+                height: 64,
+                borderRadius: "50%",
+                backgroundColor: "primary.light",
+                color: "primary.main",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 32,
+              }}
+            >
+              {feature.icon}
+            </Box>
 
-          <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-            {feature.title}
-          </Typography>
+            <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+              {feature.title}
+            </Typography>
 
-          <Typography variant="body2" color="text.secondary">
-            {feature.description}
-          </Typography>
-        </Paper>
-      </Grid>
-    ))}
-  </Grid>
-</Container>
+            <Typography variant="body2" color="text.secondary">
+              {feature.description}
+            </Typography>
+          </Paper>
+        </Grid>
+      ))}
+    </Grid>
+  </Container>
+</Box>
 
 
       {/* Roles Section */}
