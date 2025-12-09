@@ -1,0 +1,356 @@
+// src/components/Layout/MainLayout.jsx
+import React, { useState } from 'react'
+import { Outlet, useNavigate, useLocation } from 'react-router-dom'
+import {
+  AppBar,
+  Box,
+  CssBaseline,
+  Drawer,
+  IconButton,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  Toolbar,
+  Typography,
+  Avatar,
+  Menu,
+  MenuItem,
+  Divider,
+  Badge,
+} from '@mui/material'
+import {
+  Menu as MenuIcon,
+  Dashboard as DashboardIcon,
+  Folder as CasesIcon,
+  Person as VictimsIcon,
+  Gavel as PerpetratorsIcon,
+  ChildCare as ChildrenIcon,
+  Report as IncidentsIcon,
+  Assessment as ReportsIcon,
+  People as UsersIcon,
+  Settings as SettingsIcon,
+  Notifications as NotificationsIcon,
+  Logout as LogoutIcon,
+  Search as SearchIcon,
+} from '@mui/icons-material'
+import { useSelector, useDispatch } from 'react-redux'
+import { logout } from '../../store/authSlice' // Updated import path
+
+const drawerWidth = 280
+
+const MainLayout = () => {
+  const [mobileOpen, setMobileOpen] = useState(false)
+  const [anchorEl, setAnchorEl] = useState(null)
+  const [notificationsAnchorEl, setNotificationsAnchorEl] = useState(null)
+  const navigate = useNavigate()
+  const location = useLocation()
+  const dispatch = useDispatch()
+  
+  const { user } = useSelector((state) => state.auth)
+
+  const menuItems = [
+    { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
+    { text: 'Cases', icon: <CasesIcon />, path: '/cases' },
+    { text: 'Victims', icon: <VictimsIcon />, path: '/victims' },
+    { text: 'Perpetrators', icon: <PerpetratorsIcon />, path: '/perpetrators' },
+    { text: 'Children', icon: <ChildrenIcon />, path: '/children' },
+    { text: 'Incidents', icon: <IncidentsIcon />, path: '/incidents' },
+    { text: 'Reports', icon: <ReportsIcon />, path: '/reports' },
+  ]
+
+  if (user?.role === 'system_admin' || user?.role === 'admin') {
+    menuItems.push({ text: 'Users', icon: <UsersIcon />, path: '/users' })
+    menuItems.push({ text: 'Settings', icon: <SettingsIcon />, path: '/settings' })
+  }
+
+  const handleDrawerToggle = () => {
+    setMobileOpen(!mobileOpen)
+  }
+
+  const handleMenuOpen = (event) => {
+    setAnchorEl(event.currentTarget)
+  }
+
+  const handleMenuClose = () => {
+    setAnchorEl(null)
+  }
+
+  const handleNotificationsOpen = (event) => {
+    setNotificationsAnchorEl(event.currentTarget)
+  }
+
+  const handleNotificationsClose = () => {
+    setNotificationsAnchorEl(null)
+  }
+
+  const handleLogout = () => {
+    dispatch(logout())
+    navigate('/login')
+  }
+
+  const drawer = (
+    <Box sx={{ overflow: 'auto' }}>
+      {/* Logo Section */}
+      <Box sx={{ p: 3, display: 'flex', alignItems: 'center' }}>
+        <Avatar
+          sx={{
+            bgcolor: 'primary.main',
+            width: 40,
+            height: 40,
+            mr: 2,
+          }}
+        >
+          CP
+        </Avatar>
+        <Box>
+          <Typography variant="h6" sx={{ fontWeight: 700 }}>
+            Child Protection
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            Case Management
+          </Typography>
+        </Box>
+      </Box>
+      <Divider />
+
+      {/* Navigation */}
+      <List sx={{ mt: 2 }}>
+        {menuItems.map((item) => (
+          <ListItem key={item.text} disablePadding>
+            <ListItemButton
+              selected={location.pathname === item.path}
+              onClick={() => navigate(item.path)}
+              sx={{
+                borderRadius: 1,
+                mx: 1,
+                mb: 0.5,
+                '&.Mui-selected': {
+                  bgcolor: 'primary.light',
+                  color: 'primary.main',
+                  '&:hover': {
+                    bgcolor: 'primary.light',
+                  },
+                  '& .MuiListItemIcon-root': {
+                    color: 'primary.main',
+                  },
+                },
+              }}
+            >
+              <ListItemIcon sx={{ minWidth: 40 }}>
+                {item.icon}
+              </ListItemIcon>
+              <ListItemText 
+                primary={item.text} 
+                primaryTypographyProps={{ fontWeight: 500 }}
+              />
+            </ListItemButton>
+          </ListItem>
+        ))}
+      </List>
+    </Box>
+  )
+
+  return (
+    <Box sx={{ display: 'flex' }}>
+      <CssBaseline />
+      
+      {/* AppBar */}
+      <AppBar
+        position="fixed"
+        sx={{
+          width: { sm: `calc(100% - ${drawerWidth}px)` },
+          ml: { sm: `${drawerWidth}px` },
+          bgcolor: 'background.paper',
+          color: 'text.primary',
+          boxShadow: 1,
+        }}
+      >
+        <Toolbar>
+          <IconButton
+            color="inherit"
+            aria-label="open drawer"
+            edge="start"
+            onClick={handleDrawerToggle}
+            sx={{ mr: 2, display: { sm: 'none' } }}
+          >
+            <MenuIcon />
+          </IconButton>
+
+          {/* Search Bar */}
+          <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center' }}>
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                bgcolor: 'grey.50',
+                borderRadius: 2,
+                px: 2,
+                py: 0.5,
+                maxWidth: 400,
+                width: '100%',
+              }}
+            >
+              <SearchIcon sx={{ color: 'text.secondary', mr: 1 }} />
+              <input
+                type="text"
+                placeholder="Search cases, victims, perpetrators..."
+                style={{
+                  border: 'none',
+                  background: 'transparent',
+                  width: '100%',
+                  outline: 'none',
+                  fontSize: '0.875rem',
+                }}
+              />
+            </Box>
+          </Box>
+
+          {/* Notifications */}
+          <IconButton
+            sx={{ mr: 2 }}
+            onClick={handleNotificationsOpen}
+          >
+            <Badge badgeContent={3} color="error">
+              <NotificationsIcon />
+            </Badge>
+          </IconButton>
+
+          {/* User Menu */}
+          <Box sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }} onClick={handleMenuOpen}>
+            <Avatar
+              sx={{
+                width: 40,
+                height: 40,
+                bgcolor: 'primary.main',
+                mr: 1,
+              }}
+            >
+              {user?.name?.charAt(0) || 'U'}
+            </Avatar>
+            <Box>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                {user?.name || 'User'}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {user?.role?.replace('_', ' ') || 'Role'}
+              </Typography>
+            </Box>
+          </Box>
+
+          {/* User Menu Dropdown */}
+          <Menu
+            anchorEl={anchorEl}
+            open={Boolean(anchorEl)}
+            onClose={handleMenuClose}
+            PaperProps={{
+              sx: { width: 200, mt: 1 },
+            }}
+          >
+            <MenuItem onClick={() => navigate('/profile')}>
+              <ListItemIcon>
+                <Avatar sx={{ width: 24, height: 24 }} />
+              </ListItemIcon>
+              My Profile
+            </MenuItem>
+            <Divider />
+            <MenuItem onClick={handleLogout}>
+              <ListItemIcon>
+                <LogoutIcon fontSize="small" />
+              </ListItemIcon>
+              Logout
+            </MenuItem>
+          </Menu>
+
+          {/* Notifications Menu */}
+          <Menu
+            anchorEl={notificationsAnchorEl}
+            open={Boolean(notificationsAnchorEl)}
+            onClose={handleNotificationsClose}
+            PaperProps={{
+              sx: { width: 320, mt: 1 },
+            }}
+          >
+            <Box sx={{ p: 2 }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                Notifications
+              </Typography>
+            </Box>
+            <Divider />
+            <MenuItem>
+              <Box>
+                <Typography variant="body2">New case assigned to you</Typography>
+                <Typography variant="caption" color="text.secondary">
+                  2 hours ago
+                </Typography>
+              </Box>
+            </MenuItem>
+            <MenuItem>
+              <Box>
+                <Typography variant="body2">Follow-up required for CASE-001</Typography>
+                <Typography variant="caption" color="text.secondary">
+                  1 day ago
+                </Typography>
+              </Box>
+            </MenuItem>
+          </Menu>
+        </Toolbar>
+      </AppBar>
+
+      {/* Sidebar Drawer */}
+      <Box
+        component="nav"
+        sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
+      >
+        <Drawer
+          variant="temporary"
+          open={mobileOpen}
+          onClose={handleDrawerToggle}
+          ModalProps={{ keepMounted: true }}
+          sx={{
+            display: { xs: 'block', sm: 'none' },
+            '& .MuiDrawer-paper': {
+              boxSizing: 'border-box',
+              width: drawerWidth,
+            },
+          }}
+        >
+          {drawer}
+        </Drawer>
+        <Drawer
+          variant="permanent"
+          sx={{
+            display: { xs: 'none', sm: 'block' },
+            '& .MuiDrawer-paper': {
+              boxSizing: 'border-box',
+              width: drawerWidth,
+              borderRight: '1px solid',
+              borderColor: 'divider',
+            },
+          }}
+          open
+        >
+          {drawer}
+        </Drawer>
+      </Box>
+
+      {/* Main Content */}
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1,
+          p: 3,
+          width: { sm: `calc(100% - ${drawerWidth}px)` },
+          minHeight: '100vh',
+          bgcolor: 'grey.50',
+        }}
+      >
+        <Toolbar /> {/* Spacer for AppBar */}
+        <Outlet />
+      </Box>
+    </Box>
+  )
+}
+
+export default MainLayout

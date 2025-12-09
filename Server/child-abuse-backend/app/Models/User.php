@@ -2,10 +2,11 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class User extends Authenticatable
 {
@@ -16,7 +17,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
-        'is_active'
+        'is_active',
     ];
 
     protected $hidden = [
@@ -26,38 +27,31 @@ class User extends Authenticatable
 
     protected $casts = [
         'email_verified_at' => 'datetime',
-        'is_active' => 'boolean'
+        'is_active' => 'boolean',
     ];
 
-    // Relationships
-    public function reportedCases()
+    /**
+     * Automatically hash password when it is set
+     */
+    public function setPasswordAttribute($value)
     {
-        return $this->hasMany(AbuseCase::class, 'reported_by');
+        if ($value && strlen($value) < 60) {
+            // Hash only if not already hashed
+            $this->attributes['password'] = bcrypt($value);
+        } else {
+            // Keep original if it's already a hashed value
+            $this->attributes['password'] = $value;
+        }
     }
 
-    public function assignedCases()
+    // relationships
+    public function assignedCases(): HasMany
     {
         return $this->hasMany(AbuseCase::class, 'assigned_to');
     }
 
-    public function caseHistories()
+    public function caseHistories(): HasMany
     {
-        return $this->hasMany(CaseHistory::class);
-    }
-
-    // Methods for role checking
-    public function isSystemAdmin()
-    {
-        return $this->role === 'system_admin';
-    }
-
-    public function isDirector()
-    {
-        return $this->role === 'director';
-    }
-
-    public function isFocalPerson()
-    {
-        return $this->role === 'focal_person';
+        return $this->hasMany(CaseHistory::class, 'user_id');
     }
 }

@@ -16,7 +16,9 @@ return new class extends Migration
             $table->text('description');
             $table->json('changes')->nullable();
             $table->timestamps();
-            
+        });
+        
+        Schema::table('case_histories', function (Blueprint $table) {
             $table->foreign('case_id')->references('id')->on('abuse_cases')->onDelete('cascade');
             $table->foreign('user_id')->references('id')->on('users');
         });
@@ -24,6 +26,11 @@ return new class extends Migration
 
     public function down(): void
     {
+        Schema::table('case_histories', function (Blueprint $table) {
+            $table->dropForeign(['case_id']);
+            $table->dropForeign(['user_id']);
+        });
+        
         Schema::dropIfExists('case_histories');
     }
 };

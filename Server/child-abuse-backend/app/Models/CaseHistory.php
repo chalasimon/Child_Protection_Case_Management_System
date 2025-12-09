@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class CaseHistory extends Model
 {
@@ -14,20 +14,20 @@ class CaseHistory extends Model
         'user_id',
         'action',
         'description',
-        'changes'
+        'changes',
     ];
 
     protected $casts = [
-        'changes' => 'array'
+        'changes' => 'array',
     ];
 
     public function case()
     {
-        return $this->belongsTo(AbuseCase::class);
+        return $this->belongsTo(AbuseCase::class, 'case_id');
     }
 
     public function user()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'user_id');
     }
 }

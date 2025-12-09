@@ -1,174 +1,94 @@
-﻿<?php
+<?php
 
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
-use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Validator;
+use App\Models\User;
+use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
-    use ApiResponse;
-
-    public function index(Request \)
+    public function index(Request $request)
     {
-        \ = Auth::user();
-        
-        // Only system admin can view all users
-        if (!\->isSystemAdmin()) {
-            return \->forbidden('Only system administrators can view users');
+        $query = User::query();
+
+        if ($request->filled('role')) {
+            $query->where('role', $request->role);
         }
 
-        \ = User::query();
-
-        if (\->has('role')) {
-            \->where('role', \->role);
-        }
-
-        if (\->has('is_active')) {
-            \->where('is_active', \->is_active);
-        }
-
-        \ = \->per_page ?? 20;
-        \ = \->orderBy('created_at', 'desc')->paginate(\);
-
-        return \->success(\, 'Users retrieved successfully');
+        $users = $query->paginate($request->input('per_page', 15));
+        return response()->json($users);
     }
 
-    public function store(Request \)
+    public function store(Request $request)
     {
-        \ = Auth::user();
-        
-        // Only system admin can create users
-        if (!\->isSystemAdmin()) {
-            return \->forbidden('Only system administrators can create users');
-        }
-
-        \ = Validator::make(\->all(), [
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8|confirmed',
-            'role' => 'required|in:system_admin,director,focal_person'
+        $data = $request->validate([
+            'name' => ['required','string'],
+            'email' => ['required','email','unique:users,email'],
+            'password' => ['required','min:8','confirmed'],
+            'role' => ['nullable', Rule::in(['system_admin','director','focal_person'])],
         ]);
 
-        if (\->fails()) {
-            return \->validationError(\->errors());
-        }
+        $data['password'] = bcrypt($data['password']);
+        $user = User::create($data);
 
-        \ = User::create([
-            'name' => \->name,
-            'email' => \->email,
-            'password' => Hash::make(\->password),
-            'role' => \->role,
-            'is_active' => true
+        return response()->json($user, 201);
+    }
+
+    public function show($id)
+    {
+        $user = User::findOrFail($id);
+        return response()->json($user);
+    }
+
+    public function update(Request $request, $id)
+    {
+        $user = User::findOrFail($id);
+        $data = $request->validate([
+            'name' => ['sometimes','string'],
+            'email' => ['sometimes','email', Rule::unique('users','email')->ignore($user->id)],
+            'role' => ['nullable', Rule::in(['system_admin','director','focal_person'])],
+            'is_active' => ['nullable','boolean'],
         ]);
 
-        return \->success(\, 'User created successfully', 201);
+        $user->update($data);
+        return response()->json($user);
     }
 
-    public function show(\)
+    public function destroy($id)
     {
-        \ = Auth::user();
-        
-        // Only system admin can view user details
-        if (!\->isSystemAdmin()) {
-            return \->forbidden('Only system administrators can view user details');
-        }
-
-        \ = User::find(\);
-
-        if (!\) {
-            return \->notFound('User not found');
-        }
-
-        return \->success(\, 'User details retrieved');
+        $user = User::findOrFail($id);
+        $user->delete();
+        return response()->json(['message' => 'Deleted']);
     }
 
-    public function update(Request \, \)
+    public function getRoles()
     {
-        \ = Auth::user();
-        
-        // Only system admin can update users
-        if (!\->isSystemAdmin()) {
-            return \->forbidden('Only system administrators can update users');
-        }
-
-        \ = User::find(\);
-
-        if (!\) {
-            return \->notFound('User not found');
-        }
-
-        \ = Validator::make(\->all(), [
-            'name' => 'sometimes|string|max:255',
-            'email' => 'sometimes|string|email|max:255|unique:users,email,' . \,
-            'role' => 'sometimes|in:system_admin,director,focal_person',
-            'is_active' => 'sometimes|boolean'
+        return response()->json([
+            'roles' => ['system_admin','director','focal_person']
         ]);
-
-        if (\->fails()) {
-            return \->validationError(\->errors());
-        }
-
-        \->update(\->only(['name', 'email', 'role', 'is_active']));
-
-        return \->success(\, 'User updated successfully');
     }
 
-    public function destroy(\)
+    public function getFocalPersons()
     {
-        \ = Auth::user();
-        
-        // Only system admin can delete users
-        if (!\->isSystemAdmin()) {
-            return \->forbidden('Only system administrators can delete users');
-        }
-
-        \ = User::find(\);
-
-        if (!\) {
-            return \->notFound('User not found');
-        }
-
-        // Don't allow self-deletion
-        if (\->id === \->id) {
-            return \->error('Cannot delete your own account', 400);
-        }
-
-        \->delete();
-
-        return \->success(null, 'User deleted successfully');
+        $persons = User::where('role', 'focal_person')->where('is_active', true)->get();
+        return response()->json($persons);
     }
 
-    public function toggleStatus(\)
+    public function activateUser($id)
     {
-        \ = Auth::user();
-        
-        // Only system admin can toggle user status
-        if (!\->isSystemAdmin()) {
-            return \->forbidden('Only system administrators can toggle user status');
-        }
+        $user = User::findOrFail($id);
+        $user->is_active = true;
+        $user->save();
+        return response()->json(['message' => 'Activated', 'user' => $user]);
+    }
 
-        \ = User::find(\);
-
-        if (!\) {
-            return \->notFound('User not found');
-        }
-
-        // Don't allow deactivating self
-        if (\->id === \->id) {
-            return \->error('Cannot deactivate your own account', 400);
-        }
-
-        \->is_active = !\->is_active;
-        \->save();
-
-        \ = \->is_active ? 'activated' : 'deactivated';
-
-        return \->success(\, \"User {\} successfully\");
+    public function deactivateUser($id)
+    {
+        $user = User::findOrFail($id);
+        $user->is_active = false;
+        $user->save();
+        return response()->json(['message' => 'Deactivated', 'user' => $user]);
     }
 }

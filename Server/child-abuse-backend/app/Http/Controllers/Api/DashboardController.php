@@ -3,60 +3,59 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 use App\Models\AbuseCase;
-use App\Models\User;
-use App\Models\Victim;
-use App\Models\Perpetrator;
-use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
-    use ApiResponse;
-
-    public function getStats(Request $request)
+    public function getStats()
     {
         $totalCases = AbuseCase::count();
-        $openCases = AbuseCase::where("status", "open")->count();
-        $closedCases = AbuseCase::where("status", "closed")->orWhere("status", "resolved")->count();
-        
-        $totalVictims = Victim::count();
-        $totalPerpetrators = Perpetrator::count();
-        
-        // Cases by severity
-        $casesBySeverity = AbuseCase::select("severity", DB::raw("count(*) as count"))
-            ->groupBy("severity")
-            ->get();
-            
-        // Cases by type
-        $casesByType = AbuseCase::select("case_type", DB::raw("count(*) as count"))
-            ->groupBy("case_type")
-            ->get();
-            
-        // Recent cases
-        $recentCases = AbuseCase::with(["victim", "perpetrator"])
-            ->orderBy("created_at", "desc")
-            ->limit(5)
+        $openCases = AbuseCase::whereNotIn('status', ['resolved','closed'])->count();
+        $closedCases = AbuseCase::whereIn('status', ['resolved','closed'])->count();
+
+        $byType = AbuseCase::selectRaw('abuse_type, count(*) as total')->groupBy('abuse_type')->get();
+
+        return response()->json([
+            'total_cases' => $totalCases,
+            'open_cases' => $openCases,
+            'closed_cases' => $closedCases,
+            'by_type' => $byType,
+        ]);
+    }
+
+    public function getYearlyStats(Request $request)
+    {
+        $year = $request->input('year', now()->year);
+        $counts = AbuseCase::whereYear('created_at', $year)
+            ->selectRaw('MONTH(created_at) as month, count(*) as total')
+            ->groupByRaw('MONTH(created_at)')
+            ->orderByRaw('MONTH(created_at)')
             ->get();
 
-        return $this->successResponse([
-            "total_cases" => $totalCases,
-            "open_cases" => $openCases,
-            "closed_cases" => $closedCases,
-            "total_victims" => $totalVictims,
-            "total_perpetrators" => $totalPerpetrators,
-            "cases_by_severity" => $casesBySeverity,
-            "cases_by_type" => $casesByType,
-            "recent_cases" => $recentCases,
-            "chart_data" => [
-                "labels" => ["Open", "Closed", "Investigating"],
-                "data" => [
-                    AbuseCase::where("status", "open")->count(),
-                    AbuseCase::whereIn("status", ["closed", "resolved"])->count(),
-                    AbuseCase::where("status", "investigating")->count()
-                ]
-            ]
-        ], "Dashboard statistics retrieved successfully");
+        return response()->json(['year' => $year, 'monthly_counts' => $counts]);
+    }
+
+    public function getMonthlyStats(Request $request)
+    {
+        $year = $request->input('year', now()->year);
+        $month = $request->input('month', now()->month);
+        $counts = AbuseCase::whereYear('created_at', $year)
+            ->whereMonth('created_at', $month)
+            ->count();
+
+        return response()->json(['year' => $year, 'month' => $month, 'count' => $counts]);
+    }
+
+    public function getAbuseTypeStats()
+    {
+        $byType = AbuseCase::selectRaw('abuse_type, count(*) as total')->groupBy('abuse_type')->get();
+        return response()->json($byType);
+    }
+
+    public function getRecentCases()
+    {
+        $cases = AbuseCase::with('assignedTo:id,name')->orderBy('created_at','desc')->limit(10)->get();
+        return response()->json($cases);
     }
 }

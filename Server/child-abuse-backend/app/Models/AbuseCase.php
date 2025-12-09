@@ -2,35 +2,79 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
-class Incident extends Model
+class AbuseCase extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
+
+    protected $table = 'abuse_cases';
 
     protected $fillable = [
-        'case_id',
-        'report_datetime',
-        'incident_datetime',
-        'incident_end_datetime',
-        'location',
-        'location_type',
+        'case_number',
+        'case_title',
+        'case_description',
         'abuse_type',
-        'detailed_description',
-        'evidence_files',
-        'prior_reports_count'
+        'priority',
+        'severity',
+        'location',
+        'incident_date',
+        'reporting_date',
+        'status',
+        'assigned_to',
+        'follow_up_date',
+        'resolution_date',
+        'resolution_details',
+        'notes',
+        'additional_info',
     ];
 
     protected $casts = [
-        'report_datetime' => 'datetime',
-        'incident_datetime' => 'datetime',
-        'incident_end_datetime' => 'datetime',
-        'evidence_files' => 'array'
+        'incident_date' => 'date',
+        'reporting_date' => 'datetime',
+        'follow_up_date' => 'date',
+        'resolution_date' => 'date',
+        'additional_info' => 'array',
     ];
 
-    public function case()
+    // relations
+    public function assignedTo(): BelongsTo
     {
-        return $this->belongsTo(AbuseCase::class);
+        return $this->belongsTo(User::class, 'assigned_to');
+    }
+
+    public function victims(): HasMany
+    {
+        return $this->hasMany(Victim::class, 'case_id');
+    }
+
+    public function children(): HasMany
+    {
+        return $this->hasMany(Child::class, 'case_id');
+    }
+
+    public function incidents(): HasMany
+    {
+        return $this->hasMany(Incident::class, 'case_id');
+    }
+
+    public function perpetrators(): BelongsToMany
+    {
+        return $this->belongsToMany(Perpetrator::class, 'case_perpetrator', 'case_id', 'perpetrator_id')->withTimestamps();
+    }
+
+    public function notes(): HasMany
+    {
+        return $this->hasMany(CaseNote::class, 'case_id');
+    }
+
+    public function histories(): HasMany
+    {
+        return $this->hasMany(CaseHistory::class, 'case_id');
     }
 }

@@ -16,18 +16,24 @@ return new class extends Migration
             $table->dateTime('incident_end_datetime')->nullable();
             $table->text('location');
             $table->enum('location_type', ['home', 'school', 'online', 'public_place', 'other']);
-            $table->enum('abuse_type', ['sexual', 'physical', 'neglect', 'emotional']);
+            $table->enum('abuse_type', ['sexual_abuse', 'physical_abuse', 'emotional_abuse', 'neglect', 'exploitation', 'other'])->default('other');
             $table->text('detailed_description');
             $table->json('evidence_files')->nullable();
             $table->integer('prior_reports_count')->default(0);
             $table->timestamps();
-            
+        });
+        
+        Schema::table('incidents', function (Blueprint $table) {
             $table->foreign('case_id')->references('id')->on('abuse_cases')->onDelete('cascade');
         });
     }
 
     public function down(): void
     {
+        Schema::table('incidents', function (Blueprint $table) {
+            $table->dropForeign(['case_id']);
+        });
+        
         Schema::dropIfExists('incidents');
     }
 };

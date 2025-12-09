@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Child extends Model
 {
@@ -20,35 +20,15 @@ class Child extends Model
         'address_history',
         'guardian_phone',
         'guardian_email',
-        'child_contact'
+        'child_contact',
     ];
 
     protected $casts = [
-        'date_of_birth' => 'date'
+        'date_of_birth' => 'date',
     ];
 
     public function case()
     {
-        return $this->belongsTo(AbuseCase::class);
-    }
-
-    // Accessor for full name
-    public function getFullNameAttribute()
-    {
-        $names = [$this->first_name];
-        
-        if ($this->middle_name) {
-            $names[] = $this->middle_name;
-        }
-        
-        $names[] = $this->last_name;
-        
-        return implode(' ', $names);
-    }
-
-    // Accessor for age
-    public function getAgeAttribute()
-    {
-        return now()->diffInYears($this->date_of_birth);
+        return $this->belongsTo(AbuseCase::class, 'case_id');
     }
 }

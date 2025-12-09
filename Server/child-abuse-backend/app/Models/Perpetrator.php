@@ -2,59 +2,36 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Perpetrator extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'case_id',
         'first_name',
-        'middle_name',
         'last_name',
-        'aliases',
-        'date_of_birth',
-        'age',
         'gender',
-        'race_ethnicity',
-        'current_address',
-        'last_known_address',
-        'phone_number',
-        'email',
-        'relationship_to_child',
-        'fan_number',
-        'fin_number',
+        'age',
+        'date_of_birth',
+        'contact_number',
+        'address',
         'occupation',
-        'employer',
-        'criminal_history',
-        'substance_abuse_history',
-        'mental_health_history',
-        'weapons_access',
-        'weapons_details'
+        'relationship_to_victim',
+        'previous_records',
+        'description',
+        'additional_info',
     ];
 
     protected $casts = [
         'date_of_birth' => 'date',
-        'weapons_access' => 'boolean'
+        'previous_records' => 'boolean',
+        'additional_info' => 'array',
     ];
 
-    public function case()
+    public function cases()
     {
-        return $this->belongsTo(AbuseCase::class);
-    }
-
-    public function getFullNameAttribute()
-    {
-        $names = [$this->first_name];
-        
-        if ($this->middle_name) {
-            $names[] = $this->middle_name;
-        }
-        
-        $names[] = $this->last_name;
-        
-        return implode(' ', $names);
+        return $this->belongsToMany(AbuseCase::class, 'case_perpetrator', 'perpetrator_id', 'case_id');
     }
 }

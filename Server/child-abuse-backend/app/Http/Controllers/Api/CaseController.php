@@ -3,108 +3,221 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 use App\Models\AbuseCase;
+use App\Models\Perpetrator;
+use App\Models\CaseNote;
+use App\Models\CaseHistory;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Validator;
 
 class CaseController extends Controller
 {
-    use ApiResponse;
-
+    // list / filter / paginate
     public function index(Request $request)
     {
-        $cases = AbuseCase::with(['victim', 'perpetrator', 'reporter'])
-            ->orderBy('created_at', 'desc')
-            ->paginate(10);
+        $query = AbuseCase::query()->with(['assignedTo:id,name,email']);
 
-        return $this->successResponse($cases, "Cases retrieved successfully");
+        if ($request->filled('status')) {
+            $query->where('status', $request->input('status'));
+        }
+        if ($request->filled('abuse_type')) {
+            $query->where('abuse_type', $request->input('abuse_type'));
+        }
+        if ($request->filled('assigned_to')) {
+            $query->where('assigned_to', $request->input('assigned_to'));
+        }
+        if ($request->filled('search')) {
+            $s = $request->input('search');
+            $query->where(function($q) use ($s) {
+                $q->where('case_title', 'like', "%{$s}%")
+                  ->orWhere('case_number', 'like', "%{$s}%")
+                  ->orWhere('case_description', 'like', "%{$s}%");
+            });
+        }
+
+        $perPage = $request->input('per_page', 15);
+        $cases = $query->orderBy('created_at', 'desc')->paginate($perPage);
+
+        return response()->json($cases);
     }
 
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            "victim_id" => "required|exists:victims,id",
-            "perpetrator_id" => "nullable|exists:perpetrators,id",
-            "reporter_id" => "required|exists:reporters,id",
-            "case_type" => "required|string",
-            "severity" => "required|in:low,medium,high,critical",
-            "status" => "required|in:open,investigating,closed,resolved",
-            "description" => "required|string",
-            "location" => "required|string",
-            "incident_date" => "required|date"
-        ]);
+        $rules = [
+            'case_title' => ['required','string','max:255'],
+            'case_description' => ['nullable','string'],
+            'abuse_type' => ['required', Rule::in(['sexual_abuse','physical_abuse','emotional_abuse','neglect','exploitation','other'])],
+            'priority' => ['sometimes', Rule::in(['low','medium','high','critical'])],
+            'severity' => ['sometimes', Rule::in(['low','medium','high','critical'])],
+            'location' => ['nullable','string'],
+            'incident_date' => ['nullable','date'],
+            'status' => ['sometimes', Rule::in(['reported','assigned','under_investigation','investigation','resolved','closed','reopened'])],
+            'assigned_to' => ['nullable','exists:users,id'],
+            'additional_info' => ['nullable','array'],
+            'perpetrator_ids' => ['nullable','array'],
+            'perpetrator_ids.*' => ['integer','exists:perpetrators,id'],
+        ];
 
-        if ($validator->fails()) {
-            return $this->errorResponse("Validation error", $validator->errors(), 422);
+        $data = $request->validate($rules);
+
+        // Generate unique case number if not provided
+        $caseNumber = $request->input('case_number') ?? 'C-' . strtoupper(Str::random(8));
+        $data['case_number'] = $caseNumber;
+
+        $case = AbuseCase::create($data);
+
+        // attach perpetrators if present
+        if (!empty($data['perpetrator_ids'])) {
+            $case->perpetrators()->sync($data['perpetrator_ids']);
         }
 
-        $case = AbuseCase::create($request->all());
+        // create history
+        CaseHistory::create([
+            'case_id' => $case->id,
+            'user_id' => $request->user()->id,
+            'action' => 'created',
+            'description' => 'Case created',
+            'changes' => $case->toArray(),
+        ]);
 
-        return $this->successResponse($case, "Case created successfully", 201);
+        return response()->json($case, 201);
+    }
+
+    public function show($id)
+    {
+        $case = AbuseCase::with(['victims','perpetrators','children','incidents','notes.user','assignedTo'])->findOrFail($id);
+        return response()->json($case);
     }
 
     public function update(Request $request, $id)
     {
-        $case = AbuseCase::find($id);
+        $case = AbuseCase::findOrFail($id);
 
-        if (!$case) {
-            return $this->errorResponse("Case not found", null, 404);
+        $rules = [
+            'case_title' => ['sometimes','string','max:255'],
+            'case_description' => ['nullable','string'],
+            'abuse_type' => [Rule::in(['sexual_abuse','physical_abuse','emotional_abuse','neglect','exploitation','other'])],
+            'priority' => [Rule::in(['low','medium','high','critical'])],
+            'severity' => [Rule::in(['low','medium','high','critical'])],
+            'location' => ['nullable','string'],
+            'incident_date' => ['nullable','date'],
+            'status' => [Rule::in(['reported','assigned','under_investigation','investigation','resolved','closed','reopened'])],
+            'assigned_to' => ['nullable','exists:users,id'],
+            'resolution_details' => ['nullable','string'],
+            'additional_info' => ['nullable','array'],
+            'perpetrator_ids' => ['nullable','array'],
+            'perpetrator_ids.*' => ['integer','exists:perpetrators,id'],
+        ];
+
+        $data = $request->validate($rules);
+
+        $before = $case->getChanges();
+        $case->update($data);
+
+        if (array_key_exists('perpetrator_ids', $data)) {
+            $case->perpetrators()->sync($data['perpetrator_ids'] ?? []);
         }
 
-        $validator = Validator::make($request->all(), [
-            "case_type" => "sometimes|required|string",
-            "severity" => "sometimes|required|in:low,medium,high,critical",
-            "status" => "sometimes|required|in:open,investigating,closed,resolved",
-            "description" => "sometimes|required|string"
+        CaseHistory::create([
+            'case_id' => $case->id,
+            'user_id' => $request->user()->id,
+            'action' => 'updated',
+            'description' => 'Case updated',
+            'changes' => $case->getChanges(),
         ]);
 
-        if ($validator->fails()) {
-            return $this->errorResponse("Validation error", $validator->errors(), 422);
-        }
-
-        $case->update($request->all());
-
-        return $this->successResponse($case, "Case updated successfully");
+        return response()->json($case);
     }
 
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
-        $case = AbuseCase::find($id);
-
-        if (!$case) {
-            return $this->errorResponse("Case not found", null, 404);
-        }
-
+        $case = AbuseCase::findOrFail($id);
         $case->delete();
 
-        return $this->successResponse(null, "Case deleted successfully");
+        CaseHistory::create([
+            'case_id' => $id,
+            'user_id' => $request->user()->id,
+            'action' => 'deleted',
+            'description' => 'Case deleted',
+        ]);
+
+        return response()->json(['message' => 'Deleted']);
+    }
+
+    public function stats($id)
+    {
+        $case = AbuseCase::withCount(['victims','perpetrators','children','incidents'])->findOrFail($id);
+        return response()->json([
+            'id' => $case->id,
+            'case_number' => $case->case_number,
+            'victims_count' => $case->victims_count,
+            'perpetrators_count' => $case->perpetrators_count,
+            'children_count' => $case->children_count,
+            'incidents_count' => $case->incidents_count,
+        ]);
+    }
+
+    // Notes
+    public function getNotes($id)
+    {
+        $case = AbuseCase::findOrFail($id);
+        $notes = $case->notes()->with('user:id,name')->orderBy('created_at','desc')->get();
+        return response()->json($notes);
     }
 
     public function addNote(Request $request, $id)
     {
-        $case = AbuseCase::find($id);
+        $case = AbuseCase::findOrFail($id);
 
-        if (!$case) {
-            return $this->errorResponse("Case not found", null, 404);
-        }
-
-        $validator = Validator::make($request->all(), [
-            "note" => "required|string",
-            "note_type" => "required|in:investigation,medical,legal,psychological,other"
+        $data = $request->validate([
+            'content' => ['required','string'],
+            'note_type' => ['nullable','string'],
+            'is_private' => ['nullable','boolean'],
         ]);
 
-        if ($validator->fails()) {
-            return $this->errorResponse("Validation error", $validator->errors(), 422);
-        }
-
-        // Assuming you have a CaseNote model
-        $note = $case->notes()->create([
-            "user_id" => $request->user()->id,
-            "note" => $request->note,
-            "note_type" => $request->note_type
+        $note = CaseNote::create([
+            'case_id' => $case->id,
+            'user_id' => $request->user()->id,
+            'content' => $data['content'],
+            'note_type' => $data['note_type'] ?? 'general',
+            'is_private' => $data['is_private'] ?? false,
         ]);
 
-        return $this->successResponse($note, "Note added successfully", 201);
+        CaseHistory::create([
+            'case_id' => $case->id,
+            'user_id' => $request->user()->id,
+            'action' => 'note_added',
+            'description' => 'Note added',
+            'changes' => ['note_id' => $note->id],
+        ]);
+
+        return response()->json($note, 201);
+    }
+
+    public function deleteNote(Request $request, $caseId, $noteId)
+    {
+        $note = CaseNote::where('case_id', $caseId)->where('id', $noteId)->firstOrFail();
+        $this->authorizeNoteDeletion($request->user(), $note); // small internal check
+        $note->delete();
+
+        CaseHistory::create([
+            'case_id' => $caseId,
+            'user_id' => $request->user()->id,
+            'action' => 'note_deleted',
+            'description' => 'Note deleted',
+            'changes' => ['note_id' => $noteId],
+        ]);
+
+        return response()->json(['message' => 'Note deleted']);
+    }
+
+    protected function authorizeNoteDeletion($user, $note)
+    {
+        // Basic rule: note owner or system_admin can delete
+        if ($user->id !== $note->user_id && $user->role !== 'system_admin') {
+            abort(403, 'Forbidden');
+        }
     }
 }

@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Incident extends Model
 {
@@ -19,18 +19,18 @@ class Incident extends Model
         'abuse_type',
         'detailed_description',
         'evidence_files',
-        'prior_reports_count'
+        'prior_reports_count',
     ];
 
     protected $casts = [
         'report_datetime' => 'datetime',
         'incident_datetime' => 'datetime',
         'incident_end_datetime' => 'datetime',
-        'evidence_files' => 'array'
+        'evidence_files' => 'array',
     ];
 
     public function case()
     {
-        return $this->belongsTo(AbuseCase::class);
+        return $this->belongsTo(AbuseCase::class, 'case_id');
     }
 }

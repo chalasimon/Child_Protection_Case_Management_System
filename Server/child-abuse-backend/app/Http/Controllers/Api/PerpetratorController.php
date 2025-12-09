@@ -1,68 +1,88 @@
-﻿<?php
+<?php
 
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Perpetrator;
-use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Validator;
+use App\Models\Perpetrator;
 
 class PerpetratorController extends Controller
 {
-    use ApiResponse;
-
-    public function search(Request \)
+    public function index(Request $request)
     {
-        \ = Validator::make(\->all(), [
-            'name' => 'sometimes|string|min:2',
-            'fan_number' => 'sometimes|string',
-            'fin_number' => 'sometimes|string',
-            'relationship' => 'sometimes|in:parent,stepparent,grandparent,relative,babysitter,teacher,stranger,other'
+        $query = Perpetrator::query();
+
+        if ($request->filled('search')) {
+            $s = $request->search;
+            $query->where(function($q) use ($s) {
+                $q->where('first_name','like',"%{$s}%")
+                  ->orWhere('last_name','like',"%{$s}%")
+                  ->orWhere('contact_number','like',"%{$s}%");
+            });
+        }
+
+        $perpetrators = $query->orderBy('created_at','desc')->paginate($request->input('per_page', 15));
+
+        return response()->json($perpetrators);
+    }
+
+    public function store(Request $request)
+    {
+        $data = $request->validate([
+            'first_name' => ['required','string'],
+            'last_name' => ['required','string'],
+            'gender' => ['required'],
+            'age' => ['nullable','integer'],
+            'date_of_birth' => ['nullable','date'],
+            'contact_number' => ['nullable','string'],
+            'address' => ['nullable','string'],
+            'occupation' => ['nullable','string'],
+            'relationship_to_victim' => ['nullable','string'],
+            'previous_records' => ['nullable','boolean'],
+            'description' => ['nullable','string'],
+            'additional_info' => ['nullable','array'],
         ]);
 
-        if (\->fails()) {
-            return \->validationError(\->errors());
-        }
+        $perp = Perpetrator::create($data);
+        return response()->json($perp, 201);
+    }
 
-        \ = Auth::user();
-        \ = Perpetrator::with(['case']);
+    public function show($id)
+    {
+        $perp = Perpetrator::with('cases')->findOrFail($id);
+        return response()->json($perp);
+    }
 
-        // Name search
-        if (\->has('name') && \->name) {
-            \ = \->name;
-            \->where(function(\) use (\) {
-                \->where('first_name', 'like', \"%{\}%\")
-                  ->orWhere('last_name', 'like', \"%{\}%\")
-                  ->orWhere('aliases', 'like', \"%{\}%\");
-            });
-        }
+    public function update(Request $request, $id)
+    {
+        $perp = Perpetrator::findOrFail($id);
+        $data = $request->validate([
+            'first_name' => ['sometimes','string'],
+            'last_name' => ['sometimes','string'],
+            'gender' => ['sometimes'],
+            'age' => ['nullable','integer'],
+            'date_of_birth' => ['nullable','date'],
+            'contact_number' => ['nullable','string'],
+            'address' => ['nullable','string'],
+            'occupation' => ['nullable','string'],
+            'relationship_to_victim' => ['nullable','string'],
+            'previous_records' => ['nullable','boolean'],
+            'description' => ['nullable','string'],
+            'additional_info' => ['nullable','array'],
+        ]);
+        $perp->update($data);
+        return response()->json($perp);
+    }
 
-        // FAN/FIN number search
-        if (\->has('fan_number') && \->fan_number) {
-            \->where('fan_number', 'like', \"%{\->fan_number}%\");
-        }
+    public function destroy($id)
+    {
+        $perp = Perpetrator::findOrFail($id);
+        $perp->delete();
+        return response()->json(['message' => 'Deleted']);
+    }
 
-        if (\->has('fin_number') && \->fin_number) {
-            \->where('fin_number', 'like', \"%{\->fin_number}%\");
-        }
-
-        // Relationship filter
-        if (\->has('relationship')) {
-            \->where('relationship_to_child', \->relationship);
-        }
-
-        // For focal persons, only show perpetrators from their cases
-        if (\->isFocalPerson()) {
-            \->whereHas('case', function(\) use (\) {
-                \->where('reported_by', \->id);
-            });
-        }
-
-        \ = \->per_page ?? 20;
-        \ = \->orderBy('created_at', 'desc')->paginate(\);
-
-        return \->success(\, 'Perpetrators search results');
+    public function search(Request $request)
+    {
+        return $this->index($request);
     }
 }
