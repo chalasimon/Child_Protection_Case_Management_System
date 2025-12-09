@@ -19,6 +19,7 @@ import IncidentsPage from './pages/IncidentsPage'           // Changed from Inci
 import ReportsPage from './pages/ReportsPage'               // Changed from Reports
 import Unauthorized from './pages/Unauthorized'
 import Settings from './pages/Settings'
+import LandingPage from './pages/LandingPage'
 
 // If you have ProfilePage, add it too
 import ProfilePage from './pages/ProfilePage'
@@ -44,6 +45,7 @@ function App() {
       <BrowserRouter>
         <Routes>
           {/* Public Routes */}
+          <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/unauthorized" element={<Unauthorized />} />
           
@@ -72,10 +74,7 @@ function App() {
             </Route>
           </Route>
           
-          {/* Redirect root based on auth status */}
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          
-          {/* 404 Page - redirect to dashboard for now */}
+          {/* Redirect to dashboard for any other route for now */}
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </BrowserRouter>
