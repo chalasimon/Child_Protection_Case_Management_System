@@ -1,3 +1,4 @@
+// userApi.js - UPDATED VERSION
 import api from './index'
 
 export const userApi = {
@@ -6,5 +7,8 @@ export const userApi = {
   createUser: (data) => api.post('/users', data),
   updateUser: (id, data) => api.put(`/users/${id}`, data),
   deleteUser: (id) => api.delete(`/users/${id}`),
-  getFocalPersons: () => api.get('/users', { params: { role: 'focal_person' } }),
+  getRoles: () => api.get('/users/roles'),
+  getFocalPersons: () => api.get('/users/focal-persons'), // Fixed endpoint
+  activateUser: (id) => api.post(`/users/${id}/activate`),
+  deactivateUser: (id) => api.post(`/users/${id}/deactivate`),
 }

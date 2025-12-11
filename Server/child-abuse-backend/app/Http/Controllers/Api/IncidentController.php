@@ -7,27 +7,39 @@ use App\Models\Incident;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use App\Models\AbuseCase;
 
 class IncidentController extends Controller
 {
-    //
-    // ==============================
-    //  LIST INCIDENTS
-    // ==============================
-    //
-    public function index()
+    public function index(Request $request)
     {
-        return response()->json(Incident::all());
+        $query = Incident::with(['case:id,case_number,case_title']);
+
+        if ($request->filled('case_id')) {
+            $query->where('case_id', $request->case_id);
+        }
+
+        if ($request->filled('abuse_type')) {
+            $query->where('abuse_type', $request->abuse_type);
+        }
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('location', 'like', "%{$search}%")
+                  ->orWhere('detailed_description', 'like', "%{$search}%");
+            });
+        }
+
+        $incidents = $query->orderBy('incident_datetime', 'desc')
+            ->paginate($request->input('per_page', 15));
+
+        return response()->json($incidents);
     }
 
-    //
-    // ==============================
-    //  SHOW INCIDENT
-    // ==============================
-    //
     public function show($id)
     {
-        $incident = Incident::find($id);
+        $incident = Incident::with(['case:id,case_number,case_title,status'])->find($id);
 
         if (!$incident) {
             return response()->json(['message' => 'Incident not found'], 404);
@@ -36,19 +48,14 @@ class IncidentController extends Controller
         return response()->json($incident);
     }
 
-    //
-    // ==============================
-    //  CREATE INCIDENT (WITH FILES)
-    // ==============================
-    //
     public function store(Request $request)
     {
         $validated = $request->validate([
             'case_id' => 'required|exists:abuse_cases,id',
             'report_datetime' => 'required|date',
             'incident_datetime' => 'required|date',
-            'incident_end_datetime' => 'nullable|date',
-            'location' => 'required|string',
+            'incident_end_datetime' => 'nullable|date|after_or_equal:incident_datetime',
+            'location' => 'required|string|max:255',
             'location_type' => [
                 'required',
                 Rule::in(['home', 'school', 'online', 'public_place', 'other'])
@@ -58,60 +65,76 @@ class IncidentController extends Controller
                 Rule::in(['sexual_abuse', 'physical_abuse', 'emotional_abuse', 'neglect', 'exploitation', 'other'])
             ],
             'detailed_description' => 'required|string',
-            'prior_reports_count' => 'integer|min:0',
+            'prior_reports_count' => 'integer|min:0|max:100',
             'evidence_files.*' => 'file|max:10240', // 10MB
         ]);
 
         $incident = Incident::create($validated);
 
-        // ============= SAVE FILES =============
         $uploadedFiles = [];
         if ($request->hasFile('evidence_files')) {
             foreach ($request->file('evidence_files') as $file) {
-                $filename = time() . "_" . $file->getClientOriginalName();
-                $path = $file->storeAs("incidents/{$incident->id}", $filename);
-                $uploadedFiles[] = $filename;
+                $filename = time() . "_" . uniqid() . "_" . preg_replace('/[^A-Za-z0-9\-_.]/', '', $file->getClientOriginalName());
+                $path = $file->storeAs("incidents/{$incident->id}", $filename, 'private');
+                $uploadedFiles[] = [
+                    'filename' => $filename,
+                    'original_name' => $file->getClientOriginalName(),
+                    'size' => $file->getSize(),
+                    'mime_type' => $file->getMimeType(),
+                    'uploaded_at' => now()->toDateTimeString()
+                ];
             }
         }
 
-        $incident->evidence_files = $uploadedFiles;
-        $incident->save();
+        if (!empty($uploadedFiles)) {
+            $incident->evidence_files = $uploadedFiles;
+            $incident->save();
+        }
 
-        return response()->json($incident, 201);
+        // Update case abuse type if different
+        $case = AbuseCase::find($validated['case_id']);
+        if ($case && $case->abuse_type !== $validated['abuse_type']) {
+            $case->abuse_type = $validated['abuse_type'];
+            $case->save();
+        }
+
+        return response()->json([
+            'message' => 'Incident created successfully',
+            'data' => $incident->load('case:id,case_number,case_title')
+        ], 201);
     }
 
-    //
-    // ==============================
-    //  UPDATE INCIDENT (NO FILES)
-    //  File uploads use separate endpoint
-    // ==============================
-    //
     public function update(Request $request, $id)
     {
         $incident = Incident::find($id);
         if (!$incident) return response()->json(['message' => 'Incident not found'], 404);
 
         $validated = $request->validate([
-            'case_id' => 'nullable|exists:abuse_cases,id',
-            'report_datetime' => 'nullable|date',
-            'incident_datetime' => 'nullable|date',
-            'incident_end_datetime' => 'nullable|date',
-            'location' => 'nullable|string',
-            'location_type' => Rule::in(['home', 'school', 'online', 'public_place', 'other']),
-            'abuse_type' => Rule::in(['sexual_abuse', 'physical_abuse', 'emotional_abuse', 'neglect', 'exploitation', 'other']),
-            'detailed_description' => 'nullable|string',
-            'prior_reports_count' => 'nullable|integer|min:0',
+            'case_id' => 'sometimes|exists:abuse_cases,id',
+            'report_datetime' => 'sometimes|date',
+            'incident_datetime' => 'sometimes|date',
+            'incident_end_datetime' => 'nullable|date|after_or_equal:incident_datetime',
+            'location' => 'sometimes|string|max:255',
+            'location_type' => [
+                'sometimes',
+                Rule::in(['home', 'school', 'online', 'public_place', 'other'])
+            ],
+            'abuse_type' => [
+                'sometimes',
+                Rule::in(['sexual_abuse', 'physical_abuse', 'emotional_abuse', 'neglect', 'exploitation', 'other'])
+            ],
+            'detailed_description' => 'sometimes|string',
+            'prior_reports_count' => 'nullable|integer|min:0|max:100',
         ]);
 
         $incident->update($validated);
 
-        return response()->json($incident);
+        return response()->json([
+            'message' => 'Incident updated successfully',
+            'data' => $incident
+        ]);
     }
 
-
-    // =====================================================
-    //  ATTACHMENT API — Upload Files to Existing Incident
-    // =====================================================
     public function uploadAttachments(Request $request, $id)
     {
         $incident = Incident::find($id);
@@ -127,9 +150,15 @@ class IncidentController extends Controller
         $existing = $incident->evidence_files ?? [];
 
         foreach ($request->file('evidence_files') as $file) {
-            $filename = time() . "_" . $file->getClientOriginalName();
-            $file->storeAs("incidents/{$id}", $filename);
-            $uploaded[] = $filename;
+            $filename = time() . "_" . uniqid() . "_" . preg_replace('/[^A-Za-z0-9\-_.]/', '', $file->getClientOriginalName());
+            $file->storeAs("incidents/{$id}", $filename, 'private');
+            $uploaded[] = [
+                'filename' => $filename,
+                'original_name' => $file->getClientOriginalName(),
+                'size' => $file->getSize(),
+                'mime_type' => $file->getMimeType(),
+                'uploaded_at' => now()->toDateTimeString()
+            ];
         }
 
         $incident->evidence_files = array_merge($existing, $uploaded);
@@ -138,12 +167,10 @@ class IncidentController extends Controller
         return response()->json([
             'message' => 'Files uploaded successfully',
             'uploaded' => $uploaded,
+            'total_files' => count($incident->evidence_files)
         ]);
     }
 
-    // =====================================================
-    //  REMOVE FILE FROM INCIDENT
-    // =====================================================
     public function removeAttachment(Request $request, $id)
     {
         $incident = Incident::find($id);
@@ -154,23 +181,30 @@ class IncidentController extends Controller
         $filename = $request->filename;
 
         // Remove from array
-        $incident->evidence_files = array_values(
-            array_filter($incident->evidence_files, fn($f) => $f !== $filename)
-        );
+        $filteredFiles = [];
+        foreach (($incident->evidence_files ?? []) as $file) {
+            if (is_array($file) && $file['filename'] !== $filename) {
+                $filteredFiles[] = $file;
+            } elseif (is_string($file) && $file !== $filename) {
+                $filteredFiles[] = $file;
+            }
+        }
+
+        $incident->evidence_files = $filteredFiles;
         $incident->save();
 
         // Delete physical file
         $path = "incidents/{$id}/{$filename}";
-        if (Storage::exists($path)) {
-            Storage::delete($path);
+        if (Storage::disk('private')->exists($path)) {
+            Storage::disk('private')->delete($path);
         }
 
-        return response()->json(['message' => 'File removed']);
+        return response()->json([
+            'message' => 'File removed successfully',
+            'remaining_files' => count($filteredFiles)
+        ]);
     }
 
-    // =====================================================
-    //  DOWNLOAD ATTACHMENT
-    // =====================================================
     public function downloadAttachment(Request $request, $id)
     {
         $request->validate(['filename' => 'required|string']);
@@ -178,20 +212,24 @@ class IncidentController extends Controller
         $filename = $request->filename;
         $path = "incidents/{$id}/{$filename}";
 
-        if (!Storage::exists($path)) {
+        if (!Storage::disk('private')->exists($path)) {
             return response()->json(['message' => 'File not found'], 404);
         }
 
-        return Storage::download($path);
+        return Storage::disk('private')->download($path);
     }
 
+    public function getAttachments($id)
+    {
+        $incident = Incident::find($id);
+        if (!$incident) return response()->json(['message' => 'Incident not found'], 404);
 
+        return response()->json([
+            'incident_id' => $incident->id,
+            'files' => $incident->evidence_files ?? []
+        ]);
+    }
 
-    //
-    // ==============================
-    //  DELETE INCIDENT
-    // ==============================
-    //
     public function destroy($id)
     {
         $incident = Incident::find($id);
@@ -201,10 +239,19 @@ class IncidentController extends Controller
         }
 
         // Delete folder containing evidence files
-        Storage::deleteDirectory("incidents/{$id}");
+        Storage::disk('private')->deleteDirectory("incidents/{$id}");
 
         $incident->delete();
 
-        return response()->json(['message' => 'Incident deleted']);
+        return response()->json(['message' => 'Incident deleted successfully']);
+    }
+
+    public function getCaseIncidents($caseId)
+    {
+        $incidents = Incident::where('case_id', $caseId)
+            ->orderBy('incident_datetime', 'desc')
+            ->get();
+
+        return response()->json($incidents);
     }
 }

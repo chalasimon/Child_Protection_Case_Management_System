@@ -63,6 +63,11 @@ Route::middleware('auth:sanctum')->group(function () {
     */
     Route::prefix('dashboard')->group(function () {
         Route::get('/stats', [DashboardController::class, 'getStats']);
+        Route::get('/abuse-type-stats', [DashboardController::class, 'getAbuseTypeStats']);
+        Route::get('/recent-cases', [DashboardController::class, 'getRecentCases']);
+        Route::get('/yearly-stats', [DashboardController::class, 'getYearlyStats']);
+        Route::get('/monthly-stats', [DashboardController::class, 'getMonthlyStats']);
+        Route::get('/priority-stats', [DashboardController::class, 'getPriorityStats']);
     });
 
     /*
@@ -74,7 +79,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/{id}', [CaseController::class, 'show']);
         Route::put('/{id}', [CaseController::class, 'update']);
         Route::delete('/{id}', [CaseController::class, 'destroy']);
+        Route::get('/{id}/stats', [CaseController::class, 'stats']);
+        Route::get('/{id}/notes', [CaseController::class, 'getNotes']);
         Route::post('/{id}/notes', [CaseController::class, 'addNote']);
+        Route::delete('/{id}/notes/{noteId}', [CaseController::class, 'deleteNote']);
     });
 
     /*
@@ -86,6 +94,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/{id}', [VictimController::class, 'show']);
         Route::put('/{id}', [VictimController::class, 'update']);
         Route::delete('/{id}', [VictimController::class, 'destroy']);
+        Route::get('/search', [VictimController::class, 'search']);
     });
 
     /*
@@ -120,8 +129,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/{id}', [IncidentController::class, 'show']);
         Route::put('/{id}', [IncidentController::class, 'update']);
         Route::delete('/{id}', [IncidentController::class, 'destroy']);
+        Route::get('/case/{caseId}', [IncidentController::class, 'getCaseIncidents']);
+        Route::get('/{id}/attachments', [IncidentController::class, 'getAttachments']);
 
-        // ⭐⭐⭐ New Routes for Attachments ⭐⭐⭐
+        // Attachment routes
         Route::post('/{id}/attachments', [IncidentController::class, 'uploadAttachments']);
         Route::delete('/{id}/attachments', [IncidentController::class, 'removeAttachment']);
         Route::get('/{id}/attachments/download', [IncidentController::class, 'downloadAttachment']);
@@ -136,14 +147,21 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/{id}', [UserController::class, 'show']);
         Route::put('/{id}', [UserController::class, 'update']);
         Route::delete('/{id}', [UserController::class, 'destroy']);
+        Route::get('/roles', [UserController::class, 'getRoles']);
+        Route::get('/focal-persons', [UserController::class, 'getFocalPersons']);
+        Route::post('/{id}/activate', [UserController::class, 'activateUser']);
+        Route::post('/{id}/deactivate', [UserController::class, 'deactivateUser']);
     });
 
     /*
     |----------------------- Reports -----------------------
     */
     Route::prefix('reports')->group(function () {
+        Route::get('/generate', [ReportController::class, 'generateReport']);
         Route::get('/cases', [ReportController::class, 'casesReport']);
         Route::get('/victims', [ReportController::class, 'victimsReport']);
         Route::get('/perpetrators', [ReportController::class, 'perpetratorsReport']);
+        Route::get('/incidents', [ReportController::class, 'incidentReport']);
+        Route::get('/comprehensive', [ReportController::class, 'comprehensiveReport']);
     });
 });

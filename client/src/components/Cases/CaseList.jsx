@@ -16,7 +16,7 @@ import EditIcon from '@mui/icons-material/Edit'
 import DeleteIcon from '@mui/icons-material/Delete'
 import VisibilityIcon from '@mui/icons-material/Visibility'
 import { formatDate } from '../../utils/formatters'
-import { formatCaseStatus, formatAbuseType } from '../../utils/constants'
+import { formatCaseStatus, formatAbuseType } from '../../utils/constants' // Import from constants
 import LoadingSpinner from '../Common/LoadingSpinner'
 
 const CaseList = ({ cases, loading, onEdit, onDelete, onView }) => {
@@ -70,7 +70,7 @@ const CaseList = ({ cases, loading, onEdit, onDelete, onView }) => {
                 <TableCell>{caseItem.case_title}</TableCell>
                 <TableCell>
                   <Chip 
-                    label={formatAbuseType(caseItem.abuse_type)}
+                    label={formatAbuseType(caseItem.abuse_type)} // Use imported function
                     size="small"
                     color="primary"
                     variant="outlined"
@@ -78,7 +78,7 @@ const CaseList = ({ cases, loading, onEdit, onDelete, onView }) => {
                 </TableCell>
                 <TableCell>
                   <Chip 
-                    label={formatCaseStatus(caseItem.status)}
+                    label={formatCaseStatus(caseItem.status)} // Use imported function
                     size="small"
                     color={
                       caseItem.status === 'closed' || caseItem.status === 'resolved'

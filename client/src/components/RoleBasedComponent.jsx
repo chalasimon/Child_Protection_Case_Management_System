@@ -30,24 +30,3 @@ export const RoleSwitch = ({ cases = [], defaultCase = null }) => {
   return matchedCase?.component || defaultCase || null
 }
 
-// Usage examples:
-/*
-// AdminOnly usage
-<AdminOnly>
-  <DeleteButton />
-</AdminOnly>
-
-// RoleBased usage
-<RoleBased roles={['admin', 'manager']}>
-  <EditButton />
-</RoleBased>
-
-// RoleSwitch usage
-<RoleSwitch
-  cases={[
-    { role: 'admin', component: <AdminPanel /> },
-    { role: 'manager', component: <ManagerPanel /> },
-  ]}
-  defaultCase={<UserPanel />}
-/>
-*/
