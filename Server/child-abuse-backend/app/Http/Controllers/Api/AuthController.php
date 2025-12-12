@@ -19,11 +19,15 @@ class AuthController extends Controller
 
         $user = User::where('email', $data['email'])->first();
         if (! $user || ! Hash::check($data['password'], $user->password)) {
-            throw ValidationException::withMessages(['email' => ['The provided credentials are incorrect.']]);
+            // Return a generic error message without indicating which field failed
+            return response()->json([
+                'message' => 'Invalid credentials',
+            ], 401);
         }
 
         if (! $user->is_active) {
-            return response()->json(['message' => 'User is deactivated. Contact admin.'], 403);
+            // Do not reveal account status details to anonymous actors
+            return response()->json(['message' => 'Access denied'], 403);
         }
 
         $token = $user->createToken('api-token')->plainTextToken;

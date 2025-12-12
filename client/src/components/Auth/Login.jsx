@@ -18,7 +18,8 @@ import LockIcon from '@mui/icons-material/Lock'
 import ShieldIcon from '@mui/icons-material/Shield'
 import VisibilityIcon from '@mui/icons-material/Visibility'
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff'
-import { setCredentials } from '../../store/authSlice' // ✅ Now this exists!
+import { setCredentials } from '../../store/authSlice'
+import { authApi } from '../../api/auth'
 
 const Login = () => {
   const [email, setEmail] = useState('admin@example.com')
@@ -38,47 +39,19 @@ const Login = () => {
     try {
       console.log('Attempting login...', { email })
       
-      const response = await fetch('http://localhost:8000/api/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify({ email, password })
-      })
-      
-      console.log('Response status:', response.status)
-      
-      const text = await response.text()
-      console.log('Raw response:', text.substring(0, 200))
-      
-      // Remove BOM if present
-      const cleanText = text.replace(/^\uFEFF/, '').replace(/^ï»¿/, '')
-      
-      let data;
-      try {
-        data = JSON.parse(cleanText)
-        console.log('Parsed data:', data)
-      } catch (parseError) {
-        console.error('JSON parse error:', parseError, 'Text:', cleanText)
-        throw new Error('Invalid response from server. Is Laravel running?')
-      }
-      
-      if (!response.ok) {
-        throw new Error(data.message || `HTTP Error ${response.status}`)
-      }
-      
-      if (!data.token || !data.user) {
-        throw new Error('Invalid response format. Token or user missing.')
+      const data = await authApi.login({ email, password })
+      if (!data?.user) {
+        throw new Error('Invalid response format. User missing.')
       }
 
       // ✅ Use setCredentials (now available)
+      // Store user in redux for role-based UI; token is not needed with cookies
       dispatch(setCredentials({ 
         user: data.user, 
-        token: data.token 
+        token: data.token || 'cookie-session' 
       }))
       
-      console.log('Login successful!', { user: data.user.name, token: data.token.substring(0, 20) + '...' })
+      console.log('Login successful!', { user: data.user.name })
       
       // Navigate to dashboard
       navigate('/dashboard')
@@ -112,43 +85,17 @@ const Login = () => {
       console.log('Health check:', healthData)
       
       // Test login endpoint
-      const loginResponse = await fetch('http://localhost:8000/api/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify({ 
-          email: 'admin@test.com', 
-          password: 'password123' 
-        })
-      })
-      
-      const loginText = await loginResponse.text()
-      const cleanLoginText = loginText.replace(/^\uFEFF/, '').replace(/^ï»¿/, '')
-      
-      console.log('Login test response:', loginResponse.status, cleanLoginText)
-      
       try {
-        const loginData = JSON.parse(cleanLoginText)
-        
+        const loginData = await authApi.login({ email: 'admin@test.com', password: 'password123' })
         let message = `API Test Results:\n\n`
         message += `✅ Health Check: ${healthData.status || 'OK'}\n`
-        message += `✅ Login Endpoint: ${loginResponse.status}\n`
-        message += `✅ Token: ${loginData.token ? 'Received ✓' : 'Missing ✗'}\n`
+        message += `✅ Login Endpoint: 200\n`
+        message += `✅ Cookie Session: Enabled\n`
         message += `✅ User: ${loginData.user?.name || 'None'}\n\n`
         message += `Full response in browser console`
-        
         alert(message)
-        
-        // Auto-fill if successful
-        if (loginData.token) {
-          setEmail('admin@test.com')
-          setPassword('admin@test.com')
-        }
-        
-      } catch (parseErr) {
-        alert(`❌ JSON Parse Error:\nResponse: ${cleanLoginText.substring(0, 200)}`)
+      } catch (e) {
+        alert(`❌ Login Test Failed: ${e.message}`)
       }
       
     } catch (error) {

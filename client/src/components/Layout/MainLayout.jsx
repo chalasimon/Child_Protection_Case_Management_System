@@ -19,6 +19,7 @@ import {
   MenuItem,
   Divider,
   Badge,
+  Snackbar,
 } from '@mui/material'
 import {
   Menu as MenuIcon,
@@ -45,6 +46,7 @@ const MainLayout = () => {
   const [anchorEl, setAnchorEl] = useState(null)
   const [notificationsAnchorEl, setNotificationsAnchorEl] = useState(null)
   const [notifications, setNotifications] = useState([])
+  const [snackbarOpen, setSnackbarOpen] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
   const [searchValue, setSearchValue] = useState('')
   const navigate = useNavigate()
@@ -107,9 +109,16 @@ const MainLayout = () => {
     setUnreadCount(items.length)
   }, [])
 
-  const handleLogout = () => {
-    dispatch(logout())
-    navigate('/login')
+  const handleLogout = async () => {
+    try {
+      await authApi.logout()
+    } catch (e) {
+      console.error('Logout failed', e)
+    } finally {
+      dispatch(logout())
+      setSnackbarOpen(true)
+      navigate('/login')
+    }
   }
 
   const handleSearchSubmit = (e) => {
@@ -339,6 +348,13 @@ const MainLayout = () => {
             </MenuItem>
           </Menu>
         </Toolbar>
+        <Snackbar
+          open={snackbarOpen}
+          autoHideDuration={3000}
+          onClose={() => setSnackbarOpen(false)}
+          message="Logged out successfully"
+          anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        />
       </AppBar>
 
       {/* Sidebar Drawer */}

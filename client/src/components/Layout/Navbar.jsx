@@ -10,13 +10,16 @@ import {
   Menu,
   MenuItem,
   Box,
+  Snackbar,
 } from '@mui/material'
 import MenuIcon from '@mui/icons-material/Menu'
 import AccountCircleIcon from '@mui/icons-material/AccountCircle'
 import { logout } from '../../store/authSlice'
+import { authApi } from '../../api/auth'
 
 const Navbar = () => {
   const [anchorEl, setAnchorEl] = useState(null)
+  const [snackbarOpen, setSnackbarOpen] = useState(false)
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const { user } = useSelector((state) => state.auth)
@@ -34,10 +37,17 @@ const Navbar = () => {
     navigate('/profile')
   }
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     handleClose()
-    dispatch(logout())
-    navigate('/login')
+    try {
+      await authApi.logout()
+    } catch (e) {
+      console.error('Logout failed', e)
+    } finally {
+      dispatch(logout())
+      setSnackbarOpen(true)
+      navigate('/login')
+    }
   }
 
   return (
@@ -74,6 +84,13 @@ const Navbar = () => {
           </Menu>
         </Box>
       </Toolbar>
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={3000}
+        onClose={() => setSnackbarOpen(false)}
+        message="Logged out successfully"
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      />
     </AppBar>
   )
 }

@@ -43,7 +43,7 @@ Route::get('/health', function () {
 | Public Routes
 |--------------------------------------------------------------------------
 */
-Route::post('/login', [AuthController::class, 'login']);
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
 
 /*
 |--------------------------------------------------------------------------
