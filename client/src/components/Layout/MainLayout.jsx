@@ -272,9 +272,7 @@ const MainLayout = () => {
               <Typography variant="body2" sx={{ fontWeight: 600 }}>
                 {user?.name || 'User'}
               </Typography>
-              <Typography variant="caption" color="text.secondary">
-                {user?.role?.replace('_', ' ') || 'Role'}
-              </Typography>
+              
             </Box>
           </Box>
 

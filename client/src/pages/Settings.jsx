@@ -113,7 +113,7 @@ const Settings = () => {
     try {
       setSubmitting(true)
       await authApi.changePassword(passwordForm)
-      setFeedback({ type: 'success', message: 'Password updated successfully.' })
+      setFeedback({ type: 'success', message: 'Password updated successfully. You will need to log in again.' })
       setPasswordForm({ current_password: '', new_password: '', new_password_confirmation: '' })
     } catch (error) {
       if (error?.errors) {

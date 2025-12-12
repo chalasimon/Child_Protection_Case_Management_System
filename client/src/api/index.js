@@ -2,7 +2,7 @@ import axios from 'axios'
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000/api',
-  timeout: 8000, // reduce default timeout to improve perceived responsiveness
+  timeout: 30000, // increase timeout to accommodate slower backend responses
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
@@ -31,6 +31,19 @@ api.interceptors.response.use(
     return response.data || response
   },
   (error) => {
+    // Simple retry for transient timeouts or network errors
+    const config = error.config || {}
+    const shouldRetry =
+      (error.code === 'ECONNABORTED' || !error.response) && (config.method === 'get')
+    const retryCount = config.__retryCount || 0
+    const maxRetries = 2
+
+    if (shouldRetry && retryCount < maxRetries) {
+      config.__retryCount = retryCount + 1
+      const backoffMs = 1000 * Math.pow(2, retryCount) // 1s, 2s
+      return new Promise((resolve) => setTimeout(resolve, backoffMs)).then(() => api(config))
+    }
+
     const errorMessage = error.response?.data?.message || error.message
     const errorData = {
       message: errorMessage,

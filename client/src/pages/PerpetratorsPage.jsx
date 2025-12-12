@@ -164,26 +164,30 @@ const PerpetratorsPage = () => {
     setError('')
     setSuccess('')
     try {
+      const fallback = (value) => {
+        if (value === false) return false
+        return value && String(value).trim() !== '' ? value : 'N/A'
+      }
       // Normalize payload for backend
       const payload = {
-        first_name: formData.first_name,
-        last_name: formData.last_name,
-        gender: formData.gender || null,
-        age: formData.age ? Number(formData.age) : null,
-        date_of_birth: formData.date_of_birth || null,
-        contact_number: formData.contact_number || null,
-        address: formData.address || null,
-        region: formData.region || null,
-        occupation: formData.occupation || null,
-        relationship_to_victim: formData.relationship_to_victim || null,
-        fan_number: formData.fan_number || null,
-        fin_number: formData.fin_number || null,
-        description: formData.description || null,
+        first_name: fallback(formData.first_name),
+        last_name: fallback(formData.last_name),
+        gender: fallback(formData.gender),
+        age: formData.age ? Number(formData.age) : 0,
+        date_of_birth: formData.date_of_birth || '1900-01-01',
+        contact_number: fallback(formData.contact_number),
+        address: fallback(formData.address),
+        region: fallback(formData.region),
+        occupation: fallback(formData.occupation),
+        relationship_to_victim: fallback(formData.relationship_to_victim),
+        fan_number: fallback(formData.fan_number),
+        fin_number: fallback(formData.fin_number),
+        description: fallback(formData.description),
         case_id: formData.case_id || null,
         victim_id: formData.victim_id || null,
-        abuse_type: formData.abuse_type || null,
+        abuse_type: fallback(formData.abuse_type),
         previous_records: !!formData.previous_records,
-        additional_info: formData.additional_info || null,
+        additional_info: formData.additional_info || { note: 'N/A' },
       }
 
       if (selected && selected.id) {
@@ -241,22 +245,22 @@ const PerpetratorsPage = () => {
     const [form, setForm] = useState({
       first_name: initial.first_name || '',
       last_name: initial.last_name || '',
-      gender: initial.gender || '',
-      age: initial.age || '',
-      date_of_birth: initial.date_of_birth || '',
-      contact_number: initial.contact_number || '',
-      address: initial.address || '',
+      gender: initial.gender || 'male',
+      age: initial.age || 0,
+      date_of_birth: initial.date_of_birth || '1900-01-01',
+      contact_number: initial.contact_number || 'N/A',
+      address: initial.address || 'N/A',
       region: initial.region || '',
-      occupation: initial.occupation || '',
-      relationship_to_victim: normalizeRelationship(initial.relationship_to_victim),
-      fan_number: initial.fan_number || '',
-      fin_number: initial.fin_number || '',
-      description: initial.description || '',
+      occupation: initial.occupation || 'N/A',
+      relationship_to_victim: normalizeRelationship(initial.relationship_to_victim) || 'N/A',
+      fan_number: initial.fan_number || 'N/A',
+      fin_number: initial.fin_number || 'N/A',
+      description: initial.description || 'N/A',
       case_id: initial.case_id || '',
       victim_id: initial.victim_id || '',
-      abuse_type: initial.abuse_type || '',
+      abuse_type: initial.abuse_type || 'N/A',
       previous_records: !!initial.previous_records,
-      additional_info: initial.additional_info || '',
+      additional_info: initial.additional_info || { note: 'N/A' },
     })
     const [localError, setLocalError] = useState('')
 
@@ -296,7 +300,7 @@ const PerpetratorsPage = () => {
             <Grid item xs={12} md={4}>
               <FormControl fullWidth>
                 <InputLabel id="gender-label">Gender</InputLabel>
-                <Select labelId="gender-label" label="Gender" name="gender" value={form.gender} onChange={handleChange}>
+                <Select labelId="gender-label" label="Gender" name="gender" value={form.gender} onChange={handleChange} required>
                   <MenuItem value="">--</MenuItem>
                   <MenuItem value="male">Male</MenuItem>
                   <MenuItem value="female">Female</MenuItem>
@@ -307,15 +311,15 @@ const PerpetratorsPage = () => {
             </Grid>
 
             <Grid item xs={12} md={4}>
-              <TextField name="age" label="Age" value={form.age} onChange={handleChange} type="number" fullWidth />
+              <TextField name="age" label="Age" value={form.age} onChange={handleChange} type="number" fullWidth required />
             </Grid>
 
             <Grid item xs={12} md={4}>
-              <TextField name="date_of_birth" label="Date of birth" value={form.date_of_birth} onChange={handleChange} type="date" InputLabelProps={{ shrink: true }} fullWidth />
+              <TextField name="date_of_birth" label="Date of birth" value={form.date_of_birth} onChange={handleChange} type="date" InputLabelProps={{ shrink: true }} fullWidth required />
             </Grid>
 
             <Grid item xs={12} md={6}>
-              <TextField name="contact_number" label="Phone" value={form.contact_number} onChange={handleChange} fullWidth />
+              <TextField name="contact_number" label="Phone" value={form.contact_number} onChange={handleChange} fullWidth required />
             </Grid>
 
             <Grid item xs={12} md={6}>

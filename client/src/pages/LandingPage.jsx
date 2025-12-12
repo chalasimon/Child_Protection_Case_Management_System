@@ -168,10 +168,10 @@ const LandingPage = () => {
 
         {/* Hero */}
         <Grid container spacing={6} alignItems="start">
-          <Grid item xs={12} md={6}>
+          <Grid item xs={12} md={6} mt={8}>
             <Stack spacing={3} sx={{ maxWidth: 520 }}>
               <Typography sx={{ color: SNNPR_COLORS.dark, fontSize: { xs: "2rem", md: "2.75rem" }, fontWeight: 700, lineHeight: 1.2 }}>
-                Protecting children across SNNPR with one Unified platform.
+                Protecting children Across SNNPR with one Unified platform.
               </Typography>
               <Typography sx={{ color: SNNPR_COLORS.gray, fontSize: "1.05rem", lineHeight: 1.6 }}>
                 Manage cases, coordinate zones, and collaborate with partners securely and efficiently.

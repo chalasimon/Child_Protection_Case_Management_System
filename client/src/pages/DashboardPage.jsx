@@ -474,10 +474,10 @@ const DashboardPage = () => {
       {/* Charts Section */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         {/* Line Chart - Monthly Trends */}
-        <Grid item xs={12} lg={8}>
+        <Grid item xs={12} lg={7}>
           <Paper 
             sx={{
-              p: 2,
+              p: 1,
               borderRadius: 3,
               bgcolor: SNNPR_COLORS.white,
               border: `1px solid ${alpha(SNNPR_COLORS.primary, 0.1)}`,
@@ -485,7 +485,7 @@ const DashboardPage = () => {
               height: '100%',
             }}
           >
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
               <BarChartIcon sx={{ 
                 color: SNNPR_COLORS.primary, 
                 fontSize: 18, 
@@ -501,7 +501,7 @@ const DashboardPage = () => {
               </Box>
             </Box>
             
-            <Box sx={{ width: '100%', minHeight: 260, height: 360 }}>
+            <Box sx={{ width: '100%', minWidth: 0, minHeight: 260, height: 320, mt: 3 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart
                   data={monthlyCases}
@@ -546,10 +546,10 @@ const DashboardPage = () => {
         </Grid>
 
         {/* Pie Chart - Zone Distribution */}
-        <Grid item xs={12} lg={4}>
+        <Grid item xs={12} lg={5}>
           <Paper 
             sx={{
-              p: 3,
+              p: 1,
               borderRadius: 3,
               bgcolor: SNNPR_COLORS.white,
               border: `1px solid ${alpha(SNNPR_COLORS.secondary, 0.1)}`,
@@ -575,7 +575,7 @@ const DashboardPage = () => {
               </Box>
             </Box>
             
-            <Box sx={{ flex: 1, minHeight: 340, height: 340 }}>
+            <Box sx={{ flex: 1, minWidth: 0, minHeight: 140, height: 170 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -584,8 +584,8 @@ const DashboardPage = () => {
                     data={zoneData.slice(0, 6)}
                     cx="50%"
                     cy="50%"
-                    innerRadius={60}
-                    outerRadius={90}
+                    innerRadius={45}
+                    outerRadius={70}
                     dataKey="cases"
                     onMouseEnter={onPieEnter}
                     paddingAngle={2}
