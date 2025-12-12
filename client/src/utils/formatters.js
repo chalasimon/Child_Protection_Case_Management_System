@@ -1,5 +1,5 @@
 export const formatDate = (dateString) => {
-  if (!dateString) return 'N/A'
+  if (!dateString) return ''
   try {
     const date = new Date(dateString)
     if (isNaN(date.getTime())) return 'Invalid date'
@@ -16,7 +16,7 @@ export const formatDate = (dateString) => {
 }
 
 export const formatDateTime = (dateString) => {
-  if (!dateString) return 'N/A'
+  if (!dateString) return ''
   try {
     const date = new Date(dateString)
     if (isNaN(date.getTime())) return 'Invalid date'
@@ -35,7 +35,7 @@ export const formatDateTime = (dateString) => {
 }
 
 export const formatCurrency = (amount) => {
-  if (amount === null || amount === undefined) return 'N/A'
+  if (amount === null || amount === undefined) return ''
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
@@ -43,6 +43,6 @@ export const formatCurrency = (amount) => {
 }
 
 export const formatPercentage = (value) => {
-  if (value === null || value === undefined) return 'N/A'
+  if (value === null || value === undefined) return ''
   return `${(value * 100).toFixed(1)}%`
 }

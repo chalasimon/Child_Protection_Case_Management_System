@@ -125,13 +125,35 @@ class IncidentController extends Controller
             ],
             'detailed_description' => 'sometimes|string',
             'prior_reports_count' => 'nullable|integer|min:0|max:100',
+            'evidence_files.*' => 'file|max:10240', // 10MB
         ]);
 
         $incident->update($validated);
 
+        // Allow adding evidence files during update (multipart)
+        if ($request->hasFile('evidence_files')) {
+            $uploaded = [];
+            $existing = $incident->evidence_files ?? [];
+
+            foreach ($request->file('evidence_files') as $file) {
+                $filename = time() . "_" . uniqid() . "_" . preg_replace('/[^A-Za-z0-9\-_.]/', '', $file->getClientOriginalName());
+                $file->storeAs("incidents/{$id}", $filename, 'private');
+                $uploaded[] = [
+                    'filename' => $filename,
+                    'original_name' => $file->getClientOriginalName(),
+                    'size' => $file->getSize(),
+                    'mime_type' => $file->getMimeType(),
+                    'uploaded_at' => now()->toDateTimeString()
+                ];
+            }
+
+            $incident->evidence_files = array_merge($existing, $uploaded);
+            $incident->save();
+        }
+
         return response()->json([
             'message' => 'Incident updated successfully',
-            'data' => $incident
+            'data' => $incident->load('case:id,case_number,case_title')
         ]);
     }
 

@@ -31,7 +31,7 @@ const defaultStartDate = new Date()
 // Default to last 12 months to reduce empty results
 defaultStartDate.setFullYear(defaultStartDate.getFullYear() - 1)
 
-const buildFullName = (first, last) => [first, last].filter(Boolean).join(' ').trim() || 'N/A'
+const buildFullName = (first, last) => [first, last].filter(Boolean).join(' ').trim()
 const toLocalYMD = (date) => {
   if (!date) return null
   const d = new Date(date)
@@ -60,7 +60,7 @@ const ReportsPage = () => {
     setLoading(true)
     setError('')
     try {
-      const params = { summary: false }
+      const params = {}
       const formattedStart = toLocalYMD(startDate)
       const formattedEnd = toLocalYMD(endDate)
 
@@ -72,6 +72,10 @@ const ReportsPage = () => {
         }
       }
 
+      // Laravel's `boolean` validation can be strict with query strings.
+      // When we want "false" we send 0 to avoid 422 validation errors.
+      if (tabValue === 2) params.summary = 0
+
       let data
       if (tabValue === 0) data = await reportApi.generateCasesReport(params, { signal: abortRef.current.signal })
       else if (tabValue === 1) data = await reportApi.generateVictimsReport(params, { signal: abortRef.current.signal })
@@ -79,10 +83,10 @@ const ReportsPage = () => {
 
       const normalizedVictims = (data?.victims || []).map(victim => ({
         fullName: buildFullName(victim.first_name, victim.last_name),
-        age: victim.age ?? 'N/A',
-        gender: victim.gender || 'N/A',
-        case_number: victim.case?.case_number || 'N/A',
-        abuse_type: victim.case?.abuse_type || 'N/A'
+        age: victim.age ?? '',
+        gender: victim.gender || '',
+        case_number: victim.case?.case_number || '',
+        abuse_type: victim.case?.abuse_type || ''
       }))
 
       const normalizedPerpetrators = (data?.perpetrators || []).map(perpetrator => {
@@ -91,10 +95,10 @@ const ReportsPage = () => {
 
         return {
           fullName: buildFullName(perpetrator.first_name, perpetrator.last_name),
-          age: perpetrator.age ?? 'N/A',
-          gender: perpetrator.gender || 'N/A',
-          case_number: caseNumbers.length ? caseNumbers.join(', ') : 'N/A',
-          abuse_type: abuseTypes.length ? abuseTypes.join(', ') : 'N/A'
+          age: perpetrator.age ?? '',
+          gender: perpetrator.gender || '',
+          case_number: caseNumbers.length ? caseNumbers.join(', ') : '',
+          abuse_type: abuseTypes.length ? abuseTypes.join(', ') : ''
         }
       })
 
@@ -110,7 +114,19 @@ const ReportsPage = () => {
         return
       }
       console.error('Failed to generate report:', err)
-      setError('Failed to generate report. Please check server connection.')
+
+      const status = err?.status
+      const validationDetails = err?.errors
+        ? Object.values(err.errors).flat().filter(Boolean).join(' ')
+        : ''
+      const baseMessage = err?.message || 'Failed to generate report.'
+
+      let message = baseMessage
+      if (status === 401) message = 'Unauthorized. Please log in again and retry.'
+      else if (status === 403) message = baseMessage || 'Access denied.'
+      else if (status === 422) message = validationDetails ? `${baseMessage} ${validationDetails}` : baseMessage
+
+      setError(message)
       setReportData({ cases: [], victims: [], perpetrators: [] })
     } finally {
       setLoading(false)
@@ -203,8 +219,8 @@ const ReportsPage = () => {
                 {tabValue === 0 && <>
                   <TableCell>{item.case_number}</TableCell>
                   <TableCell>{item.case_title}</TableCell>
-                  <TableCell><Chip label={item.abuse_type?.replace('_', ' ') || 'N/A'} size="small" color="primary" /></TableCell>
-                  <TableCell><Chip label={item.status?.replace('_', ' ') || 'N/A'} size="small" color={item.status === 'closed' ? 'success' : 'warning'} /></TableCell>
+                  <TableCell>{item.abuse_type ? <Chip label={item.abuse_type.replace('_', ' ')} size="small" color="primary" /> : null}</TableCell>
+                  <TableCell>{item.status ? <Chip label={item.status.replace('_', ' ')} size="small" color={item.status === 'closed' ? 'success' : 'warning'} /> : null}</TableCell>
                   <TableCell>{formatDate(item.incident_date)}</TableCell>
                 </>}
                 {tabValue === 1 && <>
@@ -212,14 +228,14 @@ const ReportsPage = () => {
                   <TableCell>{item.age}</TableCell>
                   <TableCell>{item.gender}</TableCell>
                   <TableCell>{item.case_number}</TableCell>
-                  <TableCell>{item.abuse_type?.replace('_', ' ') || 'N/A'}</TableCell>
+                  <TableCell>{item.abuse_type ? item.abuse_type.replace('_', ' ') : ''}</TableCell>
                 </>}
                 {tabValue === 2 && <>
                   <TableCell>{item.fullName}</TableCell>
                   <TableCell>{item.age}</TableCell>
                   <TableCell>{item.gender}</TableCell>
                   <TableCell>{item.case_number}</TableCell>
-                  <TableCell>{item.abuse_type?.replace('_', ' ') || 'N/A'}</TableCell>
+                  <TableCell>{item.abuse_type ? item.abuse_type.replace('_', ' ') : ''}</TableCell>
                 </>}
               </TableRow>
             ))}

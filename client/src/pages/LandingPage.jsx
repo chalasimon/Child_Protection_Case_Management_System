@@ -3,44 +3,35 @@ import { Link, useNavigate } from "react-router-dom"
 import { useDispatch } from "react-redux"
 import { Box, Container, Typography, Grid, Card, CardContent, Button, Stack, TextField, Alert, Divider } from "@mui/material"
 import { alpha } from "@mui/material/styles"
+import { useTheme } from "@mui/material/styles"
 import ShieldIcon from "@mui/icons-material/Shield"
 import PeopleIcon from "@mui/icons-material/People"
 import MapIcon from "@mui/icons-material/Map"
 import { authApi } from "../api/auth"
 import { setCredentials } from "../store/authSlice"
 
-const SNNPR_COLORS = {
-  primary: "#2E7D32",
-  secondary: "#1976D2",
-  accent: "#ED6C02",
-  dark: "#263238",
-  gray: "#546E7A",
-  lightGray: "#F5F7FA",
-  white: "#FFFFFF",
-  water: "#E9F5FF",
-}
-
-const features = [
-  {
-    title: "Secure Case Management",
-    description: "Keep child protection records safe with role-based access and audit trails.",
-    icon: <ShieldIcon sx={{ color: SNNPR_COLORS.primary }} />,
-  },
-  {
-    title: "Multi-Zone Coordination",
-    description: "Coordinate across all SNNPR zones with unified dashboards and reports.",
-    icon: <MapIcon sx={{ color: SNNPR_COLORS.secondary }} />,
-  },
-  {
-    title: "Community Integration",
-    description: "Engage local partners and NGOs to respond quickly and consistently.",
-    icon: <PeopleIcon sx={{ color: SNNPR_COLORS.accent }} />,
-  },
-]
-
 const LandingPage = () => {
-  // Keep main canvas neutral; apply water tint only on navbar/footer
-  const bgGradient = `linear-gradient(135deg, ${SNNPR_COLORS.white} 0%, ${alpha(SNNPR_COLORS.primary, 0.05)} 100%)`
+  const theme = useTheme()
+
+  const bgGradient = `radial-gradient(1200px 600px at 10% 10%, ${alpha(theme.palette.primary.main, 0.12)} 0%, transparent 55%), radial-gradient(900px 500px at 90% 0%, ${alpha(theme.palette.secondary.main, 0.08)} 0%, transparent 60%)`
+
+  const features = [
+    {
+      title: "Secure case management",
+      description: "Protect sensitive records with role-based access and clear auditability.",
+      icon: <ShieldIcon color="primary" />,
+    },
+    {
+      title: "Multi-zone coordination",
+      description: "Coordinate across zones with unified workflows, dashboards, and reporting.",
+      icon: <MapIcon color="secondary" />,
+    },
+    {
+      title: "Partner collaboration",
+      description: "Support collaboration with relevant stakeholders for timely responses.",
+      icon: <PeopleIcon sx={{ color: theme.palette.text.secondary }} />,
+    },
+  ]
 
   const dispatch = useDispatch()
   const navigate = useNavigate()
@@ -48,116 +39,106 @@ const LandingPage = () => {
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [fieldErrors, setFieldErrors] = useState({ email: "", password: "" })
 
-  const scrollToLogin = () => {
-    const el = document.getElementById("inline-login")
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "start" })
+  const normalizeEmail = (value) => (value || "").trim().toLowerCase()
+  const isValidEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+
+  const validateLogin = (nextEmail, nextPassword) => {
+    const normalizedEmail = normalizeEmail(nextEmail)
+    const passwordValue = nextPassword ?? ""
+
+    const nextErrors = {
+      email: "",
+      password: "",
     }
+
+    if (!normalizedEmail) nextErrors.email = "Email is required"
+    else if (!isValidEmail(normalizedEmail)) nextErrors.email = "Enter a valid email address"
+
+    if (!passwordValue) nextErrors.password = "Password is required"
+    else if (passwordValue.length < 8) nextErrors.password = "Password must be at least 8 characters"
+
+    const ok = !nextErrors.email && !nextErrors.password
+    return { ok, normalizedEmail, nextErrors }
+  }
+
+  const scrollToId = (id) => {
+    const el = document.getElementById(id)
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" })
   }
 
   const handleInlineLogin = async (event) => {
     event.preventDefault()
     setError("")
+    const { ok, normalizedEmail, nextErrors } = validateLogin(email, password)
+    setFieldErrors(nextErrors)
+    if (!ok) return
+
     setLoading(true)
     try {
-      const data = await authApi.login({ email, password })
+      const data = await authApi.login({ email: normalizedEmail, password })
       if (!data?.token || !data?.user) {
         throw new Error("Invalid response from server")
       }
       dispatch(setCredentials({ user: data.user, token: data.token }))
       navigate("/dashboard")
     } catch (err) {
-      setError(err?.message || "Login failed. Please check credentials.")
+      if (err?.status === 503) {
+        setError("Service temporarily unavailable. Please try again later.")
+      } else {
+        setError(err?.message || "Login failed. Please check credentials.")
+      }
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: SNNPR_COLORS.lightGray, background: bgGradient }}>
-      {/* Navbar separated from body */}
+    <Box sx={{ minHeight: "100vh", bgcolor: "background.default", backgroundImage: bgGradient }}>
+      {/* Top bar */}
       <Box
         sx={{
           position: "sticky",
           top: 0,
           zIndex: 10,
-          bgcolor: alpha(SNNPR_COLORS.water, 0.92),
+          bgcolor: "background.paper",
           backdropFilter: "blur(8px)",
-          borderBottom: `1px solid ${alpha(SNNPR_COLORS.primary, 0.12)}`,
+          borderBottom: `1px solid ${theme.palette.divider}`,
         }}
       >
         <Container maxWidth="lg" sx={{ py: 2.5 }}>
           <Stack direction="row" justifyContent="space-between" alignItems="center">
             <Stack direction="row" spacing={2} alignItems="center">
-              <ShieldIcon sx={{ color: SNNPR_COLORS.primary, fontSize: 32 }} />
+              <ShieldIcon color="primary" sx={{ fontSize: 30 }} />
               <Box>
-                <Typography sx={{ color: SNNPR_COLORS.primary, fontWeight: 700 }}>Child Protection System</Typography>
-                <Typography sx={{ color: SNNPR_COLORS.gray, fontSize: 13 }}>Southern Nations, Nationalities, and Peoples' Region</Typography>
+                <Typography sx={{ color: "text.primary", fontWeight: 800, letterSpacing: 0.2 }}>
+                  Child Protection Case Management
+                </Typography>
+                <Typography sx={{ color: "text.secondary", fontSize: 13 }}>
+                  Southern Nations, Nationalities, and Peoples' Region
+                </Typography>
               </Box>
             </Stack>
             <Stack direction="row" spacing={2}>
               <Button
-                onClick={scrollToLogin}
+                onClick={() => scrollToId("inline-login")}
                 variant="text"
-                sx={{
-                  color: SNNPR_COLORS.gray,
-                  position: "relative",
-                  cursor: "pointer",
-                  transition: "color 150ms ease",
-                  '&::after': {
-                    content: '""',
-                    position: "absolute",
-                    left: 0,
-                    right: 0,
-                    bottom: 6,
-                    height: 2,
-                    bgcolor: alpha(SNNPR_COLORS.primary, 0.5),
-                    transform: "scaleX(0)",
-                    transformOrigin: "center",
-                    transition: "transform 180ms ease",
-                  },
-                  '&:hover': {
-                    color: SNNPR_COLORS.primary,
-                  },
-                  '&:hover::after': {
-                    transform: "scaleX(1)",
-                  },
-                }}
+                color="primary"
+                sx={{ textTransform: "none", fontWeight: 600 }}
               >
                 Sign in
               </Button>
               <Button
                 onClick={() => navigate("/dashboard")}
                 variant="contained"
+                color="primary"
                 sx={{
-                  bgcolor: SNNPR_COLORS.primary,
-                  position: "relative",
-                  cursor: "pointer",
-                  transition: "transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease",
-                  '&:hover': {
-                    bgcolor: alpha(SNNPR_COLORS.primary, 0.9),
-                    boxShadow: `0 10px 20px ${alpha(SNNPR_COLORS.primary, 0.18)}`,
-                    transform: "translateY(-2px)",
-                  },
-                  '&::after': {
-                    content: '""',
-                    position: "absolute",
-                    left: 12,
-                    right: 12,
-                    bottom: 8,
-                    height: 2,
-                    bgcolor: alpha(SNNPR_COLORS.white, 0.85),
-                    transform: "scaleX(0)",
-                    transformOrigin: "center",
-                    transition: "transform 180ms ease",
-                  },
-                  '&:hover::after': {
-                    transform: "scaleX(1)",
-                  },
+                  textTransform: "none",
+                  fontWeight: 700,
                 }}
               >
-                Dashboard
+                Open dashboard
               </Button>
             </Stack>
           </Stack>
@@ -167,38 +148,37 @@ const LandingPage = () => {
       <Container maxWidth="lg" sx={{ pt: 5, pb: 6 }}>
 
         {/* Hero */}
-        <Grid container spacing={6} alignItems="start">
-          <Grid item xs={12} md={6} mt={8}>
-            <Stack spacing={3} sx={{ maxWidth: 520 }}>
-              <Typography sx={{ color: SNNPR_COLORS.dark, fontSize: { xs: "2rem", md: "2.75rem" }, fontWeight: 700, lineHeight: 1.2 }}>
-                Protecting children Across SNNPR with one Unified platform.
+        <Grid container spacing={6} alignItems="center">
+          <Grid item xs={12} md={6}>
+            <Stack spacing={2.5} sx={{ maxWidth: 560, pt: { xs: 2, md: 6 } }}>
+              <Typography variant="h3" sx={{ fontWeight: 800, lineHeight: 1.15, letterSpacing: -0.3 }}>
+                Protect children across SNNPR with one unified platform.
               </Typography>
-              <Typography sx={{ color: SNNPR_COLORS.gray, fontSize: "1.05rem", lineHeight: 1.6 }}>
-                Manage cases, coordinate zones, and collaborate with partners securely and efficiently.
+              <Typography sx={{ color: "text.secondary", fontSize: "1.05rem", lineHeight: 1.7 }}>
+                Record and track cases, coordinate follow-ups across zones, and generate consistent reports—securely.
               </Typography>
-              <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-                
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
                 <Button
-                  component={Link}
-                  to="/reports"
-                  variant="outlined"
-                  sx={{
-                    borderColor: SNNPR_COLORS.primary,
-                    color: SNNPR_COLORS.primary,
-                    px: 3,
-                    py: 1.2,
-                    cursor: "pointer",
-                    transition: "transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease",
-                    '&:hover': {
-                      bgcolor: alpha(SNNPR_COLORS.primary, 0.08),
-                      boxShadow: `0 10px 20px ${alpha(SNNPR_COLORS.primary, 0.12)}`,
-                      transform: "translateY(-2px)",
-                    },
-                  }}
+                  onClick={() => scrollToId("inline-login")}
+                  variant="contained"
+                  color="primary"
+                  sx={{ textTransform: "none", fontWeight: 700, px: 3, py: 1.2 }}
                 >
-                  View Reports
+                  Sign in to continue
+                </Button>
+                <Button
+                  onClick={() => scrollToId("features")}
+                  variant="outlined"
+                  color="primary"
+                  sx={{ textTransform: "none", fontWeight: 700, px: 3, py: 1.2 }}
+                >
+                  Explore features
                 </Button>
               </Stack>
+
+              <Typography sx={{ color: "text.secondary", fontSize: 13 }}>
+                Access is provided by your organization administrator.
+              </Typography>
             </Stack>
           </Grid>
           <Grid item xs={12} md={6}>
@@ -207,25 +187,19 @@ const LandingPage = () => {
                 sx={{
                   borderRadius: 3,
                   overflow: "hidden",
-                  boxShadow: `0 16px 36px ${alpha(SNNPR_COLORS.primary, 0.14)}`,
-                  border: `1px solid ${alpha(SNNPR_COLORS.primary, 0.12)}`,
-                  transition: "transform 200ms ease, box-shadow 200ms ease",
-                  cursor: "pointer",
-                  '&:hover': {
-                    transform: "translateY(-4px)",
-                    boxShadow: `0 20px 40px ${alpha(SNNPR_COLORS.primary, 0.2)}`,
-                  },
+                  boxShadow: theme.shadows[2],
+                  border: `1px solid ${theme.palette.divider}`,
                 }}
               >
                 <Box sx={{ px: 3, pt: 2.5, pb: 0, display: "flex", alignItems: "center", gap: 1.5 }}>
-                  <ShieldIcon sx={{ color: SNNPR_COLORS.primary }} />
-                  <Typography sx={{ color: SNNPR_COLORS.dark, fontWeight: 700 }}>Secure access</Typography>
+                  <ShieldIcon color="primary" />
+                  <Typography sx={{ color: "text.primary", fontWeight: 800 }}>Secure sign-in</Typography>
                 </Box>
-                <Divider sx={{ borderColor: alpha(SNNPR_COLORS.primary, 0.12) }} />
+                <Divider />
                 <CardContent sx={{ pt: 3 }}>
-                  <Typography sx={{ color: SNNPR_COLORS.dark, mb: 1, fontWeight: 700, fontSize: "1.15rem" }}>Sign in</Typography>
-                  <Typography sx={{ color: SNNPR_COLORS.gray, mb: 2, fontSize: 14 }}>
-                    Use your assigned credentials. Sessions are protected with role-based access.
+                  <Typography sx={{ color: "text.primary", mb: 0.5, fontWeight: 800, fontSize: "1.05rem" }}>Sign in</Typography>
+                  <Typography sx={{ color: "text.secondary", mb: 2, fontSize: 14, lineHeight: 1.6 }}>
+                    Use your assigned credentials. Access is controlled by role-based permissions.
                   </Typography>
 
                   {error && (
@@ -241,38 +215,46 @@ const LandingPage = () => {
                         placeholder="you@example.com"
                         type="email"
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        onChange={(e) => {
+                          const v = e.target.value
+                          setEmail(v)
+                          if (fieldErrors.email) {
+                            setFieldErrors(prev => ({ ...prev, email: validateLogin(v, password).nextErrors.email }))
+                          }
+                        }}
                         required
                         fullWidth
                         autoComplete="email"
+                        error={!!fieldErrors.email}
+                        helperText={fieldErrors.email || ""}
                       />
                       <TextField
                         label="Password"
                         placeholder="••••••••"
                         type="password"
                         value={password}
-                        onChange={(e) => setPassword(e.target.value)}
+                        onChange={(e) => {
+                          const v = e.target.value
+                          setPassword(v)
+                          if (fieldErrors.password) {
+                            setFieldErrors(prev => ({ ...prev, password: validateLogin(email, v).nextErrors.password }))
+                          }
+                        }}
                         required
                         fullWidth
                         autoComplete="current-password"
-                        helperText="Minimum 8 characters"
+                        error={!!fieldErrors.password}
+                        helperText={fieldErrors.password || "Minimum 8 characters"}
                       />
-                      <Typography sx={{ color: SNNPR_COLORS.gray, fontSize: 13 }}>
-                        Need help? Contact your admin.
-                      </Typography>
+                      <Typography sx={{ color: "text.secondary", fontSize: 13 }}>Need help? Contact your administrator.</Typography>
                       <Button
                         type="submit"
                         variant="contained"
-                        disabled={loading}
+                        color="primary"
+                        disabled={loading || !validateLogin(email, password).ok}
                         sx={{
-                          bgcolor: SNNPR_COLORS.primary,
-                          cursor: "pointer",
-                          transition: "transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease",
-                          '&:hover': {
-                            bgcolor: alpha(SNNPR_COLORS.primary, 0.9),
-                            boxShadow: `0 10px 20px ${alpha(SNNPR_COLORS.primary, 0.18)}`,
-                            transform: "translateY(-2px)",
-                          },
+                          textTransform: "none",
+                          fontWeight: 700,
                         }}
                       >
                         {loading ? "Signing in..." : "Sign in"}
@@ -287,10 +269,10 @@ const LandingPage = () => {
         </Grid>
 
         {/* Features */}
-        <Box sx={{ mt: 8 }}>
-          <Typography sx={{ textAlign: "center", color: SNNPR_COLORS.dark, fontWeight: 700, mb: 1 }}>Built for regional teams</Typography>
-          <Typography sx={{ textAlign: "center", color: SNNPR_COLORS.gray, mb: 4 }}>
-            Three essentials to start strong.
+        <Box id="features" sx={{ mt: { xs: 6, md: 10 } }}>
+          <Typography variant="h5" sx={{ textAlign: "center", fontWeight: 800, mb: 1 }}>Built for regional teams</Typography>
+          <Typography sx={{ textAlign: "center", color: "text.secondary", mb: 4, lineHeight: 1.6 }}>
+            A focused set of capabilities to support consistent, secure child protection workflows.
           </Typography>
           <Grid container spacing={3}>
             {features.map((feat) => (
@@ -299,24 +281,19 @@ const LandingPage = () => {
                   sx={{
                     height: "100%",
                     borderRadius: 3,
-                    border: `1px solid ${alpha(SNNPR_COLORS.primary, 0.1)}`,
-                    boxShadow: "0 6px 18px rgba(0,0,0,0.05)",
+                    border: `1px solid ${theme.palette.divider}`,
+                    boxShadow: theme.shadows[1],
                     p: 1,
-                    cursor: "pointer",
-                    transition: "transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease",
-                    '&:hover': {
-                      transform: "translateY(-4px)",
-                      boxShadow: "0 12px 22px rgba(0,0,0,0.08)",
-                      borderColor: alpha(SNNPR_COLORS.primary, 0.2),
-                    },
+                    transition: "box-shadow 180ms ease",
+                    '&:hover': { boxShadow: theme.shadows[3] },
                   }}
                 >
                   <CardContent>
                     <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1 }}>
                       {feat.icon}
-                      <Typography sx={{ color: SNNPR_COLORS.dark, fontWeight: 700 }}>{feat.title}</Typography>
+                      <Typography sx={{ color: "text.primary", fontWeight: 800 }}>{feat.title}</Typography>
                     </Stack>
-                    <Typography sx={{ color: SNNPR_COLORS.gray, lineHeight: 1.5 }}>{feat.description}</Typography>
+                    <Typography sx={{ color: "text.secondary", lineHeight: 1.7 }}>{feat.description}</Typography>
                   </CardContent>
                 </Card>
               </Grid>
@@ -333,10 +310,9 @@ const LandingPage = () => {
           mt: 6,
           py: 2.5,
           width: "100%",
-          borderTop: `1px solid ${alpha(SNNPR_COLORS.primary, 0.12)}`,
-          background: alpha(SNNPR_COLORS.water, 0.8),
-          backdropFilter: "blur(6px)",
-          boxShadow: `0 12px 26px ${alpha(SNNPR_COLORS.primary, 0.08)}`,
+          borderTop: `1px solid ${theme.palette.divider}`,
+          bgcolor: "background.paper",
+          backdropFilter: "blur(8px)",
         }}
       >
         <Container maxWidth="lg">
@@ -344,10 +320,10 @@ const LandingPage = () => {
             <Grid item xs={12} md={4}>
               <Stack spacing={1.5}>
                 <Stack direction="row" spacing={1.5} alignItems="center">
-                  <ShieldIcon sx={{ color: SNNPR_COLORS.primary, fontSize: 28 }} />
-                  <Typography sx={{ color: SNNPR_COLORS.dark, fontWeight: 700 }}>Child Protection System</Typography>
+                  <ShieldIcon color="primary" sx={{ fontSize: 26 }} />
+                  <Typography sx={{ color: "text.primary", fontWeight: 800 }}>Child Protection System</Typography>
                 </Stack>
-                <Typography sx={{ color: SNNPR_COLORS.gray, lineHeight: 1.6 }}>
+                <Typography sx={{ color: "text.secondary", lineHeight: 1.6 }}>
                   Southern Nations, Nationalities, and Peoples' Region platform for coordinated child safety.
                 </Typography>
                 
@@ -356,11 +332,10 @@ const LandingPage = () => {
 
             <Grid item xs={12} sm={6} md={4}>
               <Stack spacing={1.5}>
-                <Typography sx={{ color: SNNPR_COLORS.dark, fontWeight: 700 }}>Quick links</Typography>
+                <Typography sx={{ color: "text.primary", fontWeight: 800 }}>Quick links</Typography>
                 {[
-                  { label: "Dashboard", to: "/dashboard" },
-                  { label: "Cases", to: "/cases" },
-                  { label: "Reports", to: "/reports" },
+  
+                  { label: "Getstarted", to: "/login" },
                 ].map((link) => (
                   <Button
                     key={link.label}
@@ -369,15 +344,10 @@ const LandingPage = () => {
                     variant="text"
                     sx={{
                       justifyContent: "flex-start",
-                      color: SNNPR_COLORS.gray,
+                      color: "text.secondary",
                       px: 0,
                       textTransform: "none",
-                      cursor: "pointer",
-                      transition: "color 140ms ease, transform 140ms ease",
-                      '&:hover': {
-                        color: SNNPR_COLORS.primary,
-                        transform: "translateX(4px)",
-                      },
+                      '&:hover': { bgcolor: "transparent", color: "text.primary" },
                     }}
                   >
                     {link.label}
@@ -388,17 +358,23 @@ const LandingPage = () => {
 
             <Grid item xs={12} sm={6} md={4}>
               <Stack spacing={1.5}>
-                <Typography sx={{ color: SNNPR_COLORS.dark, fontWeight: 700 }}>Contact</Typography>
-                <Typography sx={{ color: SNNPR_COLORS.gray }}>Regional Admin Desk</Typography>
-                <Typography sx={{ color: SNNPR_COLORS.gray }}>Email: support@snnpr.gov.et</Typography>
-                <Typography sx={{ color: SNNPR_COLORS.gray }}>Phone: +251-11-000-0000</Typography>
+                <Typography sx={{ color: "text.primary", fontWeight: 800 }}>Contact</Typography>
+                <Typography sx={{ color: "text.secondary" }}>Regional Admin Desk</Typography>
+                <Typography sx={{ color: "text.secondary" }}>Email: support@snnpr.gov.et</Typography>
+                <Typography sx={{ color: "text.secondary" }}>Phone: +251-11-000-0000</Typography>
               </Stack>
             </Grid>
           </Grid>
 
-          <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems="center" sx={{ mt: 4 }}>
-            <Typography sx={{ color: SNNPR_COLORS.gray, fontSize: 13 }}>© {new Date().getFullYear()} SNNPR Child Protection. All rights reserved.</Typography>
-            <Typography sx={{ color: SNNPR_COLORS.gray, fontSize: 13 }}>Data handled securely with role-based access.</Typography>
+          <Divider sx={{ my: 3 }} />
+
+          <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems="center" sx={{ mt: 0 }}>
+            <Typography sx={{ color: "text.secondary", fontSize: 13 }}>
+              © {new Date().getFullYear()} SNNPR Child Protection. All rights reserved.
+            </Typography>
+            <Typography sx={{ color: "text.secondary", fontSize: 13 }}>
+              Data handled securely with role-based access.
+            </Typography>
           </Stack>
         </Container>
       </Box>

@@ -40,8 +40,13 @@ import {
   Visibility as VisibilityIcon,
 } from '@mui/icons-material'
 import api from '../api/index'
+import { useAuth } from '../hooks/useAuth'
 
 const UsersPage = () => {
+    const { user, isSystemAdmin, isDirector } = useAuth()
+    const isAdmin = user?.role === 'admin'
+    const canManageAll = isSystemAdmin || isAdmin
+    const canManageFocalPersons = canManageAll || isDirector
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -62,8 +67,14 @@ const UsersPage = () => {
     try {
       setLoading(true)
       setError('')
-      
-      const data = await api.get('/users')
+
+      const params = {}
+      // Director: only show focal persons
+      if (isDirector && !canManageAll) {
+        params.role = 'focal_person'
+      }
+
+      const data = await api.get('/users', { params })
       
       // Handle different response formats
       if (Array.isArray(data)) {
@@ -85,7 +96,7 @@ const UsersPage = () => {
 
   useEffect(() => {
     fetchUsers()
-  }, [])
+  }, [isDirector, canManageAll])
 
   const handleToggleActive = async (user) => {
     try {
@@ -100,6 +111,7 @@ const UsersPage = () => {
   }
 
   const handleDeleteUser = async (id) => {
+    if (!canManageFocalPersons) return
     if (window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
       try {
         await api.delete(`/users/${id}`)
@@ -114,6 +126,9 @@ const UsersPage = () => {
 
   const handleCreateUser = async (formData) => {
     try {
+      if (isDirector && !canManageAll) {
+        formData = { ...formData, role: 'focal_person' }
+      }
       await api.post('/users', formData)
       setSuccess('User created successfully')
       setSelectedUser(null)
@@ -127,6 +142,11 @@ const UsersPage = () => {
 
   const handleUpdateUser = async (id, formData) => {
     try {
+      if (isDirector && !canManageAll) {
+        // Director cannot change roles; keep focal_person
+        const { role, ...rest } = formData
+        formData = rest
+      }
       await api.put(`/users/${id}`, formData)
       setSuccess('User updated successfully')
       setSelectedUser(null)
@@ -149,6 +169,7 @@ const UsersPage = () => {
   }
 
   const openPasswordDialog = (user) => {
+    if (!canManageFocalPersons) return
     setPwdUser(user)
     setPwdData({ new_password: '', new_password_confirmation: '' })
     setPwdError('')
@@ -183,6 +204,7 @@ const UsersPage = () => {
   const getRoleLabel = (role) => {
     const labels = {
       'system_admin': 'System Administrator',
+      'admin': 'Administrator',
       'director': 'Director',
       'focal_person': 'Focal Person'
     }
@@ -192,6 +214,7 @@ const UsersPage = () => {
   const getRoleColor = (role) => {
     switch (role) {
       case 'system_admin': return 'error'
+      case 'admin': return 'secondary'
       case 'director': return 'warning'
       case 'focal_person': return 'primary'
       default: return 'default'
@@ -212,6 +235,8 @@ const UsersPage = () => {
 
   const filteredUsers = users.filter(user => {
     if (!user) return false
+    // Extra safety: director only sees focal_person
+    if (isDirector && !canManageAll && user.role !== 'focal_person') return false
     const searchLower = searchTerm.toLowerCase()
     return (
       user.name?.toLowerCase().includes(searchLower) ||
@@ -247,6 +272,11 @@ const UsersPage = () => {
     }
 
     const handleSubmit = async (e) => {
+
+              // Directors can only create/edit focal persons
+              if (isDirector && !canManageAll) {
+                payload.role = 'focal_person'
+              }
       e.preventDefault()
       setSubmitting(true)
       setFormError('')
@@ -366,26 +396,44 @@ const UsersPage = () => {
             </Grid>
             
             <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                select
-                label="Role"
-                name="role"
-                value={formData.role}
-                onChange={handleChange}
-                required
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SecurityIcon fontSize="small" />
-                    </InputAdornment>
-                  ),
-                }}
-              >
-                <MenuItem value="focal_person">Focal Person</MenuItem>
-                <MenuItem value="director">Director</MenuItem>
-                <MenuItem value="system_admin">System Administrator</MenuItem>
-              </TextField>
+              {isDirector && !canManageAll ? (
+                <TextField
+                  fullWidth
+                  label="Role"
+                  value="Focal Person"
+                  disabled
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SecurityIcon fontSize="small" />
+                      </InputAdornment>
+                    ),
+                  }}
+                  helperText="Directors can manage focal persons only"
+                />
+              ) : (
+                <TextField
+                  fullWidth
+                  select
+                  label="Role"
+                  name="role"
+                  value={formData.role}
+                  onChange={handleChange}
+                  required
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SecurityIcon fontSize="small" />
+                      </InputAdornment>
+                    ),
+                  }}
+                >
+                  <MenuItem value="focal_person">Focal Person</MenuItem>
+                  <MenuItem value="director">Director</MenuItem>
+                  <MenuItem value="admin">Administrator</MenuItem>
+                  <MenuItem value="system_admin">System Administrator</MenuItem>
+                </TextField>
+              )}
             </Grid>
             
             <Grid item xs={12} md={6}>
@@ -437,19 +485,21 @@ const UsersPage = () => {
             User Management
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Manage system users and their permissions
+            {isDirector && !canManageAll ? 'Manage focal persons' : 'Manage system users and their permissions'}
           </Typography>
         </Box>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => {
-            setSelectedUser(null)
-            setOpenForm(true)
-          }}
-        >
-          New User
-        </Button>
+        {canManageFocalPersons && (
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => {
+              setSelectedUser(null)
+              setOpenForm(true)
+            }}
+          >
+            New User
+          </Button>
+        )}
       </Box>
 
       {/* Error/Success Messages */}

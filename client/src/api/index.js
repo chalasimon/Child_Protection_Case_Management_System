@@ -33,6 +33,23 @@ api.interceptors.response.use(
     return response.data || response
   },
   (error) => {
+    const sanitizeErrorMessage = (message, status) => {
+      const msg = typeof message === 'string' ? message : ''
+      const lower = msg.toLowerCase()
+
+      // Never leak database details to the UI.
+      if (msg.includes('SQLSTATE') || lower.includes('mysql') || lower.includes('pdoexception')) {
+        return 'Service temporarily unavailable. Please try again later.'
+      }
+
+      // Common infra/backend down cases.
+      if (status === 503) {
+        return 'Service temporarily unavailable. Please try again later.'
+      }
+
+      return message
+    }
+
     // Simple retry for transient timeouts or network errors
     const config = error.config || {}
     const shouldRetry =
@@ -46,10 +63,12 @@ api.interceptors.response.use(
       return new Promise((resolve) => setTimeout(resolve, backoffMs)).then(() => api(config))
     }
 
-    const errorMessage = error.response?.data?.message || error.message
+    const rawMessage = error.response?.data?.message || error.message
+    const status = error.response?.status
+    const errorMessage = sanitizeErrorMessage(rawMessage, status)
     const errorData = {
       message: errorMessage,
-      status: error.response?.status,
+      status,
       errors: error.response?.data?.errors || null,
       original: error,
     }

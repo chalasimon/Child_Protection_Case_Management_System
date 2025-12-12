@@ -17,10 +17,10 @@ import {
 } from '@mui/material'
 import { Search as SearchIcon, Refresh as RefreshIcon } from '@mui/icons-material'
 import { caseApi } from '../api/cases'
-import { victimsApi } from '../api/victims'
-import { perpetratorsApi } from '../api/perpetrators'
-import { childrenApi } from '../api/children'
-import { incidentsApi } from '../api/incidents'
+import { victimApi } from '../api/victims'
+import { perpetratorApi } from '../api/perpetrators'
+import { childApi } from '../api/children'
+import { incidentApi } from '../api/incidents'
 import { useLocation, useNavigate } from 'react-router-dom'
 
 const useQuery = () => new URLSearchParams(useLocation().search)
@@ -85,10 +85,10 @@ const SearchPage = () => {
     try {
       const [casesRes, victimsRes, perpsRes, childrenRes, incidentsRes] = await Promise.allSettled([
         caseApi.getCases({ per_page: 200 }),
-        victimsApi.getVictims?.({ per_page: 200 }) || victimsApi.getVictims?.(),
-        perpetratorsApi.getPerpetrators?.({ per_page: 200 }) || perpetratorsApi.getPerpetrators?.(),
-        childrenApi.getChildren?.({ per_page: 200 }) || childrenApi.getChildren?.(),
-        incidentsApi.getIncidents?.({ per_page: 200 }) || incidentsApi.getIncidents?.(),
+          victimApi.getVictims?.({ per_page: 200 }) || victimApi.getVictims?.(),
+        perpetratorApi.getPerpetrators?.({ per_page: 200 }) || perpetratorApi.getPerpetrators?.(),
+        childApi.getChildren?.({ per_page: 200 }) || childApi.getChildren?.(),
+        incidentApi.getIncidents?.({ per_page: 200 }) || incidentApi.getIncidents?.(),
       ])
 
       const normalize = (res) => {

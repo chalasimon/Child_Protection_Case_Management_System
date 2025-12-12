@@ -41,8 +41,19 @@ const PerpetratorsPage = () => {
 
   // SNNPR sample list — expand if needed
   const SNNPR_REGIONS = [
-    'Arba Minch', 'Hawassa', 'Bonga', 'Wolaita Sodo', 'Dilla', 'Konso',
-    'Jinka', 'Mizan Teferi', 'Sodo Zuria', 'Bale', 'Keffa', 'Bench Maji'
+    'Arba Minch',
+    'Arba Minch, Gamo Zone, Chencha',
+    'Hawassa',
+    'Bonga',
+    'Wolaita Sodo',
+    'Dilla',
+    'Konso',
+    'Jinka',
+    'Mizan Teferi',
+    'Sodo Zuria',
+    'Bale',
+    'Keffa',
+    'Bench Maji'
   ]
 
   const ABUSE_TYPES = [
@@ -164,30 +175,43 @@ const PerpetratorsPage = () => {
     setError('')
     setSuccess('')
     try {
-      const fallback = (value) => {
-        if (value === false) return false
-        return value && String(value).trim() !== '' ? value : 'N/A'
+      const cleanText = (value) => {
+        if (value === null || value === undefined) return null
+        if (typeof value === 'string') {
+          const trimmed = value.trim()
+          return trimmed === '' ? null : trimmed
+        }
+        return value
       }
+
+      const toNullableNumber = (value) => {
+        if (value === null || value === undefined || value === '') return null
+        const num = Number(value)
+        return Number.isFinite(num) ? num : null
+      }
+
       // Normalize payload for backend
       const payload = {
-        first_name: fallback(formData.first_name),
-        last_name: fallback(formData.last_name),
-        gender: fallback(formData.gender),
-        age: formData.age ? Number(formData.age) : 0,
-        date_of_birth: formData.date_of_birth || '1900-01-01',
-        contact_number: fallback(formData.contact_number),
-        address: fallback(formData.address),
-        region: fallback(formData.region),
-        occupation: fallback(formData.occupation),
-        relationship_to_victim: fallback(formData.relationship_to_victim),
-        fan_number: fallback(formData.fan_number),
-        fin_number: fallback(formData.fin_number),
-        description: fallback(formData.description),
+        first_name: cleanText(formData.first_name),
+        last_name: cleanText(formData.last_name),
+        gender: cleanText(formData.gender),
+        age: toNullableNumber(formData.age),
+        date_of_birth: cleanText(formData.date_of_birth),
+        contact_number: cleanText(formData.contact_number),
+        address: cleanText(formData.address),
+        region: cleanText(formData.region),
+        occupation: cleanText(formData.occupation),
+        relationship_to_victim: cleanText(formData.relationship_to_victim),
+        fan_number: cleanText(formData.fan_number),
+        fin_number: cleanText(formData.fin_number),
+        description: cleanText(formData.description),
+        // Link perpetrator to case via backend pivot (case_perpetrator)
         case_id: formData.case_id || null,
-        victim_id: formData.victim_id || null,
-        abuse_type: fallback(formData.abuse_type),
         previous_records: !!formData.previous_records,
-        additional_info: formData.additional_info || { note: 'N/A' },
+        additional_info:
+          formData.additional_info && typeof formData.additional_info === 'object'
+            ? formData.additional_info
+            : null,
       }
 
       if (selected && selected.id) {
@@ -222,7 +246,7 @@ const PerpetratorsPage = () => {
   }, [searchTerm])
 
   // ---------- UI helpers ----------
-  const formatDate = (d) => (d ? new Date(d).toLocaleDateString() : 'N/A')
+  const formatDate = (d) => (d ? new Date(d).toLocaleDateString() : '')
   const calcAge = (dob) => {
     if (!dob) return null
     const b = new Date(dob); const t = new Date()
@@ -230,6 +254,32 @@ const PerpetratorsPage = () => {
     const m = t.getMonth() - b.getMonth()
     if (m < 0 || (m === 0 && t.getDate() < b.getDate())) age--
     return age
+  }
+
+  const hasDisplayValue = (value) => {
+    if (value === null || value === undefined) return false
+    if (typeof value === 'number') return Number.isFinite(value)
+    return String(value).trim() !== ''
+  }
+
+  const getDisplayAge = (person) => {
+    if (hasDisplayValue(person?.age)) return person.age
+    return calcAge(person?.date_of_birth)
+  }
+
+  const getPrimaryCase = (p) => {
+    if (!p) return null
+    if (p.case) return p.case
+    if (Array.isArray(p.cases) && p.cases.length > 0) return p.cases[0]
+    return null
+  }
+
+  const getPrimaryVictim = (p) => {
+    if (!p) return null
+    if (p.victim) return p.victim
+    const c = getPrimaryCase(p)
+    if (c && Array.isArray(c.victims) && c.victims.length > 0) return c.victims[0]
+    return null
   }
 
   // ---------- Perpetrator Form Component ----------
@@ -242,31 +292,59 @@ const PerpetratorsPage = () => {
       return match || value
     }
 
+    const initialCaseId = initial.case_id || initial.case?.id || (Array.isArray(initial.cases) && initial.cases.length > 0 ? initial.cases[0]?.id : '') || ''
+    const initialVictimId = initial.victim_id || initial.victim?.id || (Array.isArray(initial.cases) && initial.cases.length > 0 && Array.isArray(initial.cases[0]?.victims) && initial.cases[0].victims.length > 0 ? initial.cases[0].victims[0]?.id : '') || ''
+    const initialAbuseType = initial.abuse_type || initial.case?.abuse_type || (Array.isArray(initial.cases) && initial.cases.length > 0 ? initial.cases[0]?.abuse_type : '') || ''
+
     const [form, setForm] = useState({
       first_name: initial.first_name || '',
       last_name: initial.last_name || '',
       gender: initial.gender || 'male',
-      age: initial.age || 0,
-      date_of_birth: initial.date_of_birth || '1900-01-01',
-      contact_number: initial.contact_number || 'N/A',
-      address: initial.address || 'N/A',
+      age: initial.age ?? '',
+      date_of_birth: initial.date_of_birth || '',
+      contact_number: initial.contact_number || '',
+      address: initial.address || '',
       region: initial.region || '',
-      occupation: initial.occupation || 'N/A',
-      relationship_to_victim: normalizeRelationship(initial.relationship_to_victim) || 'N/A',
-      fan_number: initial.fan_number || 'N/A',
-      fin_number: initial.fin_number || 'N/A',
-      description: initial.description || 'N/A',
-      case_id: initial.case_id || '',
-      victim_id: initial.victim_id || '',
-      abuse_type: initial.abuse_type || 'N/A',
+      occupation: initial.occupation || '',
+      relationship_to_victim: normalizeRelationship(initial.relationship_to_victim) || '',
+      fan_number: initial.fan_number || '',
+      fin_number: initial.fin_number || '',
+      description: initial.description || '',
+      case_id: initialCaseId,
+      victim_id: initialVictimId,
+      abuse_type: initialAbuseType,
       previous_records: !!initial.previous_records,
-      additional_info: initial.additional_info || { note: 'N/A' },
+      additional_info: initial.additional_info || null,
     })
     const [localError, setLocalError] = useState('')
 
+    const filteredVictims = form.case_id
+      ? victims.filter(v => String(v.case_id || v.case?.id || '') === String(form.case_id))
+      : victims
+
     const handleChange = (e) => {
       const { name, value, type, checked } = e.target
-      setForm(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }))
+      setForm(prev => {
+        const next = { ...prev, [name]: type === 'checkbox' ? checked : value }
+
+        if (name === 'case_id') {
+          const selectedCase = cases.find(c => String(c.id) === String(value))
+          next.abuse_type = selectedCase?.abuse_type || ''
+          next.victim_id = ''
+        }
+
+        if (name === 'victim_id') {
+          const victim = victims.find(v => String(v.id) === String(value))
+          const vCaseId = victim?.case_id || victim?.case?.id || ''
+          if (vCaseId && String(vCaseId) !== String(next.case_id)) {
+            next.case_id = vCaseId
+            const selectedCase = cases.find(c => String(c.id) === String(vCaseId))
+            next.abuse_type = selectedCase?.abuse_type || next.abuse_type
+          }
+        }
+
+        return next
+      })
     }
 
     const handleSubmit = async (e) => {
@@ -315,11 +393,11 @@ const PerpetratorsPage = () => {
             </Grid>
 
             <Grid item xs={12} md={4}>
-              <TextField name="date_of_birth" label="Date of birth" value={form.date_of_birth} onChange={handleChange} type="date" InputLabelProps={{ shrink: true }} fullWidth required />
+              <TextField name="date_of_birth" label="Date of birth" value={form.date_of_birth} onChange={handleChange} type="date" InputLabelProps={{ shrink: true }} fullWidth />
             </Grid>
 
             <Grid item xs={12} md={6}>
-              <TextField name="contact_number" label="Phone" value={form.contact_number} onChange={handleChange} fullWidth required />
+              <TextField name="contact_number" label="Phone" value={form.contact_number} onChange={handleChange} fullWidth />
             </Grid>
 
             <Grid item xs={12} md={6}>
@@ -340,8 +418,8 @@ const PerpetratorsPage = () => {
               <FormControl fullWidth>
                 <InputLabel id="victim-label">Victim</InputLabel>
                 <Select labelId="victim-label" label="Victim" name="victim_id" value={form.victim_id} onChange={handleChange}>
-                  <MenuItem value="">Unknown</MenuItem>
-                  {victims.map(v => (
+                  <MenuItem value="">Unselected</MenuItem>
+                  {filteredVictims.map(v => (
                     <MenuItem key={v.id} value={v.id}>
                       {`${v.first_name} ${v.last_name}`}{v.case ? ` — CASE-${v.case.id || v.case_id}` : ''}
                     </MenuItem>
@@ -353,7 +431,7 @@ const PerpetratorsPage = () => {
             <Grid item xs={12} md={6}>
               <FormControl fullWidth>
                 <InputLabel id="abuse-label">Abuse Type</InputLabel>
-                <Select labelId="abuse-label" label="Abuse Type" name="abuse_type" value={form.abuse_type} onChange={handleChange}>
+                <Select labelId="abuse-label" label="Abuse Type" name="abuse_type" value={form.abuse_type} onChange={handleChange} disabled>
                   <MenuItem value="">Select</MenuItem>
                   {ABUSE_TYPES.map(t => <MenuItem key={t.value} value={t.value}>{t.label}</MenuItem>)}
                 </Select>
@@ -472,23 +550,30 @@ const PerpetratorsPage = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {perpetrators.map(p => (
+                {perpetrators.map(p => {
+                  const primaryCase = getPrimaryCase(p)
+                  const primaryVictim = getPrimaryVictim(p)
+                  const abuseType = primaryCase?.abuse_type || p.abuse_type
+
+                  return (
                   <TableRow key={p.id} hover>
                     <TableCell>
                       <Typography sx={{ fontWeight: 600 }}>{p.first_name} {p.last_name}</Typography>
                       {p.address && <Typography variant="caption" color="text.secondary" display="block">{p.address}</Typography>}
                     </TableCell>
-                    <TableCell>{p.gender || 'N/A'}</TableCell>
+                    <TableCell>{p.gender || ''}</TableCell>
                     <TableCell>
-                      {calcAge(p.date_of_birth) ? `${calcAge(p.date_of_birth)} yrs` : 'N/A'}
+                      {hasDisplayValue(getDisplayAge(p)) ? `${getDisplayAge(p)} yrs` : ''}
                       {p.date_of_birth && <Typography variant="caption" color="text.secondary" display="block">{formatDate(p.date_of_birth)}</Typography>}
                     </TableCell>
-                    <TableCell>{p.contact_number || 'N/A'}</TableCell>
-                    <TableCell>{p.fan_number || 'N/A'}</TableCell>
-                    <TableCell>{p.fin_number || 'N/A'}</TableCell>
-                    <TableCell>{p.case ? (p.case.case_number || `CASE-${p.case.id}`) : (p.case_id ? `CASE-${p.case_id}` : 'Unassigned')}</TableCell>
-                    <TableCell>{p.victim ? `${p.victim.first_name} ${p.victim.last_name}` : p.victim_id ? `Victim-${p.victim_id}` : 'N/A'}</TableCell>
-                    <TableCell><Chip label={p.abuse_type ? p.abuse_type.replace('_', ' ') : 'N/A'} size="small" /></TableCell>
+                    <TableCell>{p.contact_number || ''}</TableCell>
+                    <TableCell>{p.fan_number || ''}</TableCell>
+                    <TableCell>{p.fin_number || ''}</TableCell>
+                    <TableCell>{primaryCase ? (primaryCase.case_number || `CASE-${primaryCase.id}`) : (p.case_id ? `CASE-${p.case_id}` : 'Unassigned')}</TableCell>
+                    <TableCell>{primaryVictim ? `${primaryVictim.first_name} ${primaryVictim.last_name}` : ''}</TableCell>
+                    <TableCell>
+                      {abuseType ? <Chip label={abuseType.replace('_', ' ')} size="small" /> : null}
+                    </TableCell>
                     <TableCell align="center">
                       <Tooltip title="View">
                         <IconButton size="small" onClick={() => handleView(p)}><VisibilityIcon /></IconButton>
@@ -503,7 +588,8 @@ const PerpetratorsPage = () => {
                       </>}
                     </TableCell>
                   </TableRow>
-                ))}
+                  )
+                })}
               </TableBody>
             </Table>
           </TableContainer>
@@ -525,17 +611,29 @@ const PerpetratorsPage = () => {
         <DialogContent dividers>
           {viewItem ? (
             <Grid container spacing={2}>
+              {(() => {
+                const primaryCase = getPrimaryCase(viewItem)
+                const primaryVictim = getPrimaryVictim(viewItem)
+                const abuseType = primaryCase?.abuse_type || viewItem.abuse_type
+
+                return (
+                  <>
               <Grid item xs={12} md={6}><strong>Name</strong><div>{viewItem.first_name} {viewItem.last_name}</div></Grid>
-              <Grid item xs={12} md={6}><strong>Gender</strong><div>{viewItem.gender || 'N/A'}</div></Grid>
-              <Grid item xs={12} md={6}><strong>Age</strong><div>{calcAge(viewItem.date_of_birth) || 'N/A'}</div></Grid>
-              <Grid item xs={12} md={6}><strong>Contact</strong><div>{viewItem.contact_number || 'N/A'}</div></Grid>
-              <Grid item xs={12} md={6}><strong>FAN Number</strong><div>{viewItem.fan_number || 'N/A'}</div></Grid>
-              <Grid item xs={12} md={6}><strong>FIN Number</strong><div>{viewItem.fin_number || 'N/A'}</div></Grid>
-              <Grid item xs={12}><strong>Address</strong><div>{viewItem.address || 'N/A'}</div></Grid>
-              <Grid item xs={12} md={6}><strong>Case</strong><div>{viewItem.case ? (viewItem.case.case_number || `CASE-${viewItem.case.id}`) : (viewItem.case_id ? `CASE-${viewItem.case_id}` : 'Unassigned')}</div></Grid>
-              <Grid item xs={12} md={6}><strong>Victim</strong><div>{viewItem.victim ? `${viewItem.victim.first_name} ${viewItem.victim.last_name}` : (viewItem.victim_id ? `Victim-${viewItem.victim_id}` : 'N/A')}</div></Grid>
-              <Grid item xs={12}><strong>Abuse Type</strong><div>{viewItem.abuse_type || 'N/A'}</div></Grid>
-              <Grid item xs={12}><strong>Description</strong><div style={{ whiteSpace: 'pre-wrap' }}>{viewItem.description || 'N/A'}</div></Grid>
+              {hasDisplayValue(viewItem.gender) && <Grid item xs={12} md={6}><strong>Gender</strong><div>{viewItem.gender}</div></Grid>}
+              {hasDisplayValue(getDisplayAge(viewItem)) && <Grid item xs={12} md={6}><strong>Age</strong><div>{getDisplayAge(viewItem)}</div></Grid>}
+              {hasDisplayValue(viewItem.contact_number) && <Grid item xs={12} md={6}><strong>Contact</strong><div>{viewItem.contact_number}</div></Grid>}
+              {hasDisplayValue(viewItem.fan_number) && <Grid item xs={12} md={6}><strong>FAN Number</strong><div>{viewItem.fan_number}</div></Grid>}
+              {hasDisplayValue(viewItem.fin_number) && <Grid item xs={12} md={6}><strong>FIN Number</strong><div>{viewItem.fin_number}</div></Grid>}
+              {hasDisplayValue(viewItem.address) && <Grid item xs={12}><strong>Address</strong><div>{viewItem.address}</div></Grid>}
+              <Grid item xs={12} md={6}><strong>Case</strong><div>{primaryCase ? (primaryCase.case_number || `CASE-${primaryCase.id}`) : (viewItem.case_id ? `CASE-${viewItem.case_id}` : 'Unassigned')}</div></Grid>
+              {primaryVictim && (
+                <Grid item xs={12} md={6}><strong>Victim</strong><div>{`${primaryVictim.first_name} ${primaryVictim.last_name}`}</div></Grid>
+              )}
+              {hasDisplayValue(abuseType) && <Grid item xs={12}><strong>Abuse Type</strong><div>{abuseType}</div></Grid>}
+              {hasDisplayValue(viewItem.description) && <Grid item xs={12}><strong>Description</strong><div style={{ whiteSpace: 'pre-wrap' }}>{viewItem.description}</div></Grid>}
+                  </>
+                )
+              })()}
             </Grid>
           ) : (
             <Box sx={{ textAlign: 'center', py: 4 }}><CircularProgress /></Box>

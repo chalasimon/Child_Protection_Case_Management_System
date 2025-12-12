@@ -69,9 +69,13 @@ function App() {
               {/* Profile Page - if you want it */}
               <Route path="/profile" element={<ProfilePage />} />
               
-              {/* Admin-only Routes - Nested within ProtectedRoute */}
-              <Route element={<RoleProtectedRoute allowedRoles={['system_admin', 'admin']} />}>
+              {/* User management */}
+              <Route element={<RoleProtectedRoute allowedRoles={['system_admin', 'admin', 'director']} />}>
                 <Route path="/users" element={<UsersPage />} />
+              </Route>
+
+              {/* Admin-only Routes */}
+              <Route element={<RoleProtectedRoute allowedRoles={['system_admin', 'admin']} />}>
                 <Route path="/settings" element={<Settings />} />
               </Route>
             </Route>

@@ -10,7 +10,10 @@ class PerpetratorController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Perpetrator::query();
+        $query = Perpetrator::query()->with([
+            'cases:id,case_number,case_title,abuse_type',
+            'cases.victims:id,case_id,first_name,last_name',
+        ]);
 
         if ($request->filled('search')) {
             $s = $request->search;
@@ -36,20 +39,46 @@ class PerpetratorController extends Controller
             'date_of_birth' => ['nullable','date'],
             'contact_number' => ['nullable','string'],
             'address' => ['nullable','string'],
+            'region' => ['nullable','string'],
             'occupation' => ['nullable','string'],
             'relationship_to_victim' => ['nullable','string'],
+            'fan_number' => ['nullable','string','max:50'],
+            'fin_number' => ['nullable','string','max:50'],
             'previous_records' => ['nullable','boolean'],
             'description' => ['nullable','string'],
             'additional_info' => ['nullable','array'],
+
+            // Optional linking to cases via pivot
+            'case_id' => ['nullable','integer','exists:abuse_cases,id'],
+            'case_ids' => ['nullable','array'],
+            'case_ids.*' => ['integer','exists:abuse_cases,id'],
         ]);
 
+        // Avoid mass-assigning non-column attributes (pivot links)
+        $caseId = $data['case_id'] ?? $request->input('case_id');
+        $caseIds = $data['case_ids'] ?? $request->input('case_ids');
+        unset($data['case_id'], $data['case_ids']);
+
         $perp = Perpetrator::create($data);
-        return response()->json($perp, 201);
+
+        if (is_array($caseIds) && count($caseIds) > 0) {
+            $perp->cases()->sync($caseIds);
+        } elseif (!empty($caseId)) {
+            $perp->cases()->sync([(int) $caseId]);
+        }
+
+        return response()->json(
+            $perp->load(['cases:id,case_number,case_title,abuse_type', 'cases.victims:id,case_id,first_name,last_name']),
+            201
+        );
     }
 
     public function show($id)
     {
-        $perp = Perpetrator::with('cases')->findOrFail($id);
+        $perp = Perpetrator::with([
+            'cases:id,case_number,case_title,abuse_type',
+            'cases.victims:id,case_id,first_name,last_name',
+        ])->findOrFail($id);
         return response()->json($perp);
     }
 
@@ -64,14 +93,40 @@ class PerpetratorController extends Controller
             'date_of_birth' => ['nullable','date'],
             'contact_number' => ['nullable','string'],
             'address' => ['nullable','string'],
+            'region' => ['nullable','string'],
             'occupation' => ['nullable','string'],
             'relationship_to_victim' => ['nullable','string'],
+            'fan_number' => ['nullable','string','max:50'],
+            'fin_number' => ['nullable','string','max:50'],
             'previous_records' => ['nullable','boolean'],
             'description' => ['nullable','string'],
             'additional_info' => ['nullable','array'],
+
+            // Optional linking to cases via pivot
+            'case_id' => ['nullable','integer','exists:abuse_cases,id'],
+            'case_ids' => ['nullable','array'],
+            'case_ids.*' => ['integer','exists:abuse_cases,id'],
         ]);
+
+        // Avoid mass-assigning non-column attributes (pivot links)
+        $caseId = $data['case_id'] ?? $request->input('case_id');
+        $caseIds = $data['case_ids'] ?? $request->input('case_ids');
+        unset($data['case_id'], $data['case_ids']);
+
         $perp->update($data);
-        return response()->json($perp);
+
+        // Sync cases if provided
+        if ($request->has('case_ids') && is_array($caseIds)) {
+            $perp->cases()->sync($caseIds);
+        } elseif ($request->has('case_id')) {
+            if (!empty($caseId)) {
+                $perp->cases()->sync([(int) $caseId]);
+            } else {
+                $perp->cases()->detach();
+            }
+        }
+
+        return response()->json($perp->load(['cases:id,case_number,case_title,abuse_type', 'cases.victims:id,case_id,first_name,last_name']));
     }
 
     public function destroy($id)

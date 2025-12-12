@@ -72,8 +72,11 @@ const MainLayout = () => {
     { text: 'Reports', icon: <ReportsIcon />, path: '/reports' },
   ]
 
-  if (user?.role === 'system_admin' || user?.role === 'admin') {
+  if (user?.role === 'system_admin' || user?.role === 'admin' || user?.role === 'director') {
     menuItems.push({ text: 'Users', icon: <UsersIcon />, path: '/users' })
+  }
+
+  if (user?.role === 'system_admin' || user?.role === 'admin') {
     menuItems.push({ text: 'Settings', icon: <SettingsIcon />, path: '/settings' })
   }
 

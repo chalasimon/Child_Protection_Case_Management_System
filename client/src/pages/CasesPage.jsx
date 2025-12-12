@@ -229,10 +229,14 @@ const CasesPage = () => {
                   <TableRow key={c.id} hover>
                     <TableCell>{c.case_number || `CASE-${c.id}`}</TableCell>
                     <TableCell>{c.case_title}</TableCell>
-                    <TableCell><Chip label={c.abuse_type?.replace('_',' ') || 'N/A'} size="small" /></TableCell>
+                    <TableCell>
+                      {c.abuse_type ? <Chip label={c.abuse_type.replace('_',' ')} size="small" /> : null}
+                    </TableCell>
                     <TableCell><Chip label={(c.priority||'medium').toUpperCase()} size="small" /></TableCell>
-                    <TableCell><Chip label={c.status?.replace('_',' ') || 'N/A'} size="small" /></TableCell>
-                    <TableCell>{c.location || 'N/A'}</TableCell>
+                    <TableCell>
+                      {c.status ? <Chip label={c.status.replace('_',' ')} size="small" /> : null}
+                    </TableCell>
+                    <TableCell>{c.location || ''}</TableCell>
                     <TableCell align="center">
                       <IconButton size="small" onClick={(e)=>handleOpenMenu(e,c)}><MoreIcon/></IconButton>
                     </TableCell>
@@ -261,12 +265,12 @@ const CasesPage = () => {
           {viewCase ? (
             <Grid container spacing={2}>
               <Grid item xs={12} md={6}><Typography variant="subtitle2">Case Number</Typography><Typography>{viewCase.case_number || `CASE-${viewCase.id}`}</Typography></Grid>
-              <Grid item xs={12} md={6}><Typography variant="subtitle2">Title</Typography><Typography>{viewCase.case_title || 'N/A'}</Typography></Grid>
-              <Grid item xs={12}><Typography variant="subtitle2">Description</Typography><Typography sx={{ whiteSpace:'pre-wrap' }}>{viewCase.case_description || 'N/A'}</Typography></Grid>
-              <Grid item xs={12} md={4}><Typography variant="subtitle2">Type</Typography><Chip label={(viewCase.abuse_type||'').replace('_',' ') || 'N/A'} size="small" /></Grid>
+              <Grid item xs={12} md={6}><Typography variant="subtitle2">Title</Typography><Typography>{viewCase.case_title || ''}</Typography></Grid>
+              <Grid item xs={12}><Typography variant="subtitle2">Description</Typography><Typography sx={{ whiteSpace:'pre-wrap' }}>{viewCase.case_description || ''}</Typography></Grid>
+              <Grid item xs={12} md={4}><Typography variant="subtitle2">Type</Typography>{viewCase.abuse_type ? <Chip label={viewCase.abuse_type.replace('_',' ')} size="small" /> : null}</Grid>
               <Grid item xs={12} md={4}><Typography variant="subtitle2">Priority</Typography><Chip label={(viewCase.priority||'medium').toUpperCase()} size="small" /></Grid>
-              <Grid item xs={12} md={4}><Typography variant="subtitle2">Status</Typography><Chip label={(viewCase.status||'').replace('_',' ') || 'N/A'} size="small" /></Grid>
-              <Grid item xs={12}><Typography variant="subtitle2">Location</Typography><Typography>{viewCase.location || 'N/A'}</Typography></Grid>
+              <Grid item xs={12} md={4}><Typography variant="subtitle2">Status</Typography>{viewCase.status ? <Chip label={viewCase.status.replace('_',' ')} size="small" /> : null}</Grid>
+              <Grid item xs={12}><Typography variant="subtitle2">Location</Typography><Typography>{viewCase.location || ''}</Typography></Grid>
             </Grid>
           ) : (
             <Box sx={{ py:4, textAlign:'center' }}><CircularProgress/></Box>

@@ -107,6 +107,55 @@ const IncidentsPage = () => {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
+  const refreshIncident = async (id) => {
+    try {
+      const res = await incidentApi.getIncident(id)
+      const data = res?.data?.data || res?.data || null
+      if (data) {
+        setSelectedIncident(data)
+      }
+    } catch (e) {
+      console.error('Failed to refresh incident', e)
+    }
+  }
+
+  const downloadEvidenceFile = async (incidentId, fileMeta) => {
+    try {
+      const filename = typeof fileMeta === 'string' ? fileMeta : fileMeta?.filename
+      const originalName = typeof fileMeta === 'string' ? fileMeta : (fileMeta?.original_name || fileMeta?.name || fileMeta?.filename)
+      if (!filename) return
+
+      const res = await incidentApi.downloadAttachment(incidentId, filename)
+      const blob = res?.data instanceof Blob ? res.data : new Blob([res?.data])
+
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = originalName || filename
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      window.URL.revokeObjectURL(url)
+    } catch (e) {
+      console.error('Failed to download evidence', e)
+      setError('Failed to download evidence file')
+    }
+  }
+
+  const removeEvidenceFile = async (incidentId, fileMeta) => {
+    try {
+      const filename = typeof fileMeta === 'string' ? fileMeta : fileMeta?.filename
+      if (!filename) return
+      await incidentApi.removeAttachment(incidentId, filename)
+      await refreshIncident(incidentId)
+      await fetchIncidents()
+      setSuccess('Evidence file removed')
+    } catch (e) {
+      console.error('Failed to remove evidence', e)
+      setError('Failed to remove evidence file')
+    }
+  }
+
   useEffect(() => {
     if (!isAuthenticated) {
       return
@@ -280,6 +329,20 @@ const IncidentsPage = () => {
     }
   }
 
+  const normalizeEvidenceList = (evidenceFiles) => {
+    if (!evidenceFiles) return []
+    if (Array.isArray(evidenceFiles)) return evidenceFiles
+    if (typeof evidenceFiles === 'string') {
+      try {
+        const parsed = JSON.parse(evidenceFiles)
+        return Array.isArray(parsed) ? parsed : []
+      } catch {
+        return []
+      }
+    }
+    return []
+  }
+
   const getFieldError = (field) => {
     const value = formErrors?.[field]
     if (!value) return ''
@@ -415,12 +478,38 @@ const IncidentsPage = () => {
                 </Grid>
                 <Grid item xs={12}>
                   <Typography variant="subtitle2">Evidence Files</Typography>
-                  <Box sx={{ display:'flex', flexWrap:'wrap', gap:1, mt:1 }}>
-                    {Array.isArray(selectedIncident.evidence_files) && selectedIncident.evidence_files.map((file, idx) => (
-                      <Link key={idx} href={file.url || '#'} target="_blank" underline="hover">
-                        <Chip label={file.name || `File ${idx+1}`} size="small" />
-                      </Link>
-                    ))}
+                  <Box sx={{ display:'flex', flexDirection:'column', gap:1, mt:1 }}>
+                    {normalizeEvidenceList(selectedIncident.evidence_files).length === 0 ? (
+                      <Typography variant="body2" color="text.secondary">No evidence files uploaded</Typography>
+                    ) : (
+                      normalizeEvidenceList(selectedIncident.evidence_files).map((file, idx) => {
+                        const label = typeof file === 'string'
+                          ? file
+                          : (file.original_name || file.name || file.filename || `File ${idx + 1}`)
+
+                        return (
+                          <Box key={idx} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+                            <Link
+                              component="button"
+                              underline="hover"
+                              onClick={() => downloadEvidenceFile(selectedIncident.id, file)}
+                              sx={{ textAlign: 'left' }}
+                            >
+                              {label}
+                            </Link>
+                            {canModifyIncidents && (
+                              <Button
+                                size="small"
+                                color="error"
+                                onClick={() => removeEvidenceFile(selectedIncident.id, file)}
+                              >
+                                Remove
+                              </Button>
+                            )}
+                          </Box>
+                        )
+                      })
+                    )}
                   </Box>
                 </Grid>
               </Grid>
