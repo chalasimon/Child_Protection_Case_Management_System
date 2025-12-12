@@ -285,6 +285,7 @@ const Settings = () => {
                       type="password"
                       label="Current Password"
                       fullWidth
+                      autoComplete="current-password"
                       value={passwordForm.current_password}
                       onChange={handlePasswordChange('current_password')}
                       error={!!getPasswordFieldError('current_password')}
@@ -297,6 +298,7 @@ const Settings = () => {
                       type="password"
                       label="New Password"
                       fullWidth
+                      autoComplete="new-password"
                       value={passwordForm.new_password}
                       onChange={handlePasswordChange('new_password')}
                       error={!!getPasswordFieldError('new_password')}
@@ -309,6 +311,7 @@ const Settings = () => {
                       type="password"
                       label="Confirm New Password"
                       fullWidth
+                      autoComplete="new-password"
                       value={passwordForm.new_password_confirmation}
                       onChange={handlePasswordChange('new_password_confirmation')}
                       error={!!getPasswordFieldError('new_password_confirmation')}

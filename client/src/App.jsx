@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { Suspense, lazy } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { ThemeProvider, createTheme } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
@@ -7,19 +7,19 @@ import CssBaseline from '@mui/material/CssBaseline'
 import ProtectedRoute from './components/ProtectedRoute'
 import RoleProtectedRoute from './components/RoleProtectedRoute'
 
-// Pages - Using YOUR actual file names from the Explorer
-import Login from './components/Auth/Login'
-import DashboardPage from './pages/DashboardPage'           // Changed from Dashboard
-import UsersPage from './pages/UsersPage'                   // Changed from Users
-import CasesPage from './pages/CasesPage'                   // Changed from Cases
-import VictimsPage from './pages/VictimsPage'               // Changed from Victims
-import PerpetratorsPage from './pages/PerpetratorsPage'     // Changed from Perpetrators
-import ChildrenPage from './pages/ChildrenPage'             // Keep as ChildrenPage
-import IncidentsPage from './pages/IncidentsPage'           // Changed from Incidents
-import ReportsPage from './pages/ReportsPage'               // Changed from Reports
-import Unauthorized from './pages/Unauthorized'
-import Settings from './pages/Settings'
-import LandingPage from './pages/LandingPage'
+// Pages - code-splitting via React.lazy
+const Login = lazy(() => import('./components/Auth/Login'))
+const DashboardPage = lazy(() => import('./pages/DashboardPage'))
+const UsersPage = lazy(() => import('./pages/UsersPage'))
+const CasesPage = lazy(() => import('./pages/CasesPage'))
+const VictimsPage = lazy(() => import('./pages/VictimsPage'))
+const PerpetratorsPage = lazy(() => import('./pages/PerpetratorsPage'))
+const ChildrenPage = lazy(() => import('./pages/ChildrenPage'))
+const IncidentsPage = lazy(() => import('./pages/IncidentsPage'))
+const ReportsPage = lazy(() => import('./pages/ReportsPage'))
+const Unauthorized = lazy(() => import('./pages/Unauthorized'))
+const Settings = lazy(() => import('./pages/Settings'))
+const LandingPage = lazy(() => import('./pages/LandingPage'))
 
 // If you have ProfilePage, add it too
 import ProfilePage from './pages/ProfilePage'
@@ -42,7 +42,8 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <BrowserRouter>
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <Suspense fallback={<div style={{ padding: 16 }}>Loading...</div>}>
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<LandingPage />} />
@@ -57,6 +58,7 @@ function App() {
               
               {/* Case Management */}
               <Route path="/cases" element={<CasesPage />} />
+              <Route path="/cases/:id" element={<CasesPage />} />
               <Route path="/victims" element={<VictimsPage />} />
               <Route path="/perpetrators" element={<PerpetratorsPage />} />
               <Route path="/children" element={<ChildrenPage />} />
@@ -77,6 +79,7 @@ function App() {
           {/* Redirect to dashboard for any other route for now */}
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
+        </Suspense>
       </BrowserRouter>
     </ThemeProvider>
   )

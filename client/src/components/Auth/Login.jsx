@@ -119,7 +119,7 @@ const Login = () => {
           'Accept': 'application/json',
         },
         body: JSON.stringify({ 
-          email: 'admin@example.com', 
+          email: 'admin@test.com', 
           password: 'password123' 
         })
       })
@@ -143,8 +143,8 @@ const Login = () => {
         
         // Auto-fill if successful
         if (loginData.token) {
-          setEmail('admin@example.com')
-          setPassword('password123')
+          setEmail('admin@test.com')
+          setPassword('admin@test.com')
         }
         
       } catch (parseErr) {

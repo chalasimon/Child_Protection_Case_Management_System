@@ -192,16 +192,25 @@ const IncidentsPage = () => {
     try {
       const payload = {
         case_id: formData.case_id || '',
-        report_datetime: toServerDateTime(formData.report_datetime) || '',
-        incident_datetime: toServerDateTime(formData.incident_datetime) || '',
-        incident_end_datetime: toServerDateTime(formData.incident_end_datetime) || '',
+        report_datetime: toServerDateTime(formData.report_datetime),
+        incident_datetime: toServerDateTime(formData.incident_datetime),
+        incident_end_datetime: toServerDateTime(formData.incident_end_datetime),
         location: formData.location,
         location_type: formData.location_type,
         abuse_type: formData.abuse_type,
         detailed_description: formData.detailed_description,
-        prior_reports_count: Number(formData.prior_reports_count) || 0,
+        prior_reports_count: Number.isFinite(Number(formData.prior_reports_count)) ? Number(formData.prior_reports_count) : 0,
         evidence_files: evidenceFiles,
       }
+
+      // Remove empty optional fields so update validation (sometimes|date) doesn't see empty strings
+      Object.keys(payload).forEach((key) => {
+        const val = payload[key]
+        const isStringEmpty = typeof val === 'string' && val.trim() === ''
+        if (val === undefined || val === null || isStringEmpty) {
+          delete payload[key]
+        }
+      })
 
       if (formData.id) {
         await incidentApi.updateIncident(formData.id, payload)

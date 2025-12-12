@@ -1,5 +1,5 @@
 // src/pages/ReportsPage.jsx
-import { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import {
   Paper,
   Box,
@@ -28,9 +28,21 @@ import { formatDate } from '../utils/formatters'
 
 const defaultEndDate = new Date()
 const defaultStartDate = new Date()
-defaultStartDate.setMonth(defaultStartDate.getMonth() - 1)
+// Default to last 12 months to reduce empty results
+defaultStartDate.setFullYear(defaultStartDate.getFullYear() - 1)
+
+const buildFullName = (first, last) => [first, last].filter(Boolean).join(' ').trim() || 'N/A'
+const toLocalYMD = (date) => {
+  if (!date) return null
+  const d = new Date(date)
+  if (Number.isNaN(d.getTime())) return null
+  // Normalize to local day to avoid timezone shifting the requested date
+  const tzAdjusted = new Date(d.getTime() - d.getTimezoneOffset() * 60000)
+  return tzAdjusted.toISOString().split('T')[0]
+}
 
 const ReportsPage = () => {
+  const abortRef = useRef(null)
   const [startDate, setStartDate] = useState(defaultStartDate)
   const [endDate, setEndDate] = useState(defaultEndDate)
   const [reportData, setReportData] = useState(null)
@@ -39,13 +51,18 @@ const ReportsPage = () => {
   const [tabValue, setTabValue] = useState(0)
 
   const generateReport = async () => {
+    // Cancel any in-flight request to avoid blocking and stale updates
+    if (abortRef.current) {
+      try { abortRef.current.abort() } catch {}
+    }
+    abortRef.current = new AbortController()
+
     setLoading(true)
     setError('')
-    setReportData(null)
     try {
-      const params = {}
-      const formattedStart = startDate ? startDate.toISOString().split('T')[0] : null
-      const formattedEnd = endDate ? endDate.toISOString().split('T')[0] : null
+      const params = { summary: false }
+      const formattedStart = toLocalYMD(startDate)
+      const formattedEnd = toLocalYMD(endDate)
 
       if (formattedStart) params.start_date = formattedStart
       if (formattedEnd) {
@@ -56,16 +73,42 @@ const ReportsPage = () => {
       }
 
       let data
-      if (tabValue === 0) data = await reportApi.generateCasesReport(params)
-      else if (tabValue === 1) data = await reportApi.generateVictimsReport(params)
-      else data = await reportApi.generatePerpetratorsReport(params)
+      if (tabValue === 0) data = await reportApi.generateCasesReport(params, { signal: abortRef.current.signal })
+      else if (tabValue === 1) data = await reportApi.generateVictimsReport(params, { signal: abortRef.current.signal })
+      else data = await reportApi.generatePerpetratorsReport(params, { signal: abortRef.current.signal })
+
+      const normalizedVictims = (data?.victims || []).map(victim => ({
+        fullName: buildFullName(victim.first_name, victim.last_name),
+        age: victim.age ?? 'N/A',
+        gender: victim.gender || 'N/A',
+        case_number: victim.case?.case_number || 'N/A',
+        abuse_type: victim.case?.abuse_type || 'N/A'
+      }))
+
+      const normalizedPerpetrators = (data?.perpetrators || []).map(perpetrator => {
+        const caseNumbers = (perpetrator.cases || []).map(c => c.case_number).filter(Boolean)
+        const abuseTypes = (perpetrator.cases || []).map(c => c.abuse_type).filter(Boolean)
+
+        return {
+          fullName: buildFullName(perpetrator.first_name, perpetrator.last_name),
+          age: perpetrator.age ?? 'N/A',
+          gender: perpetrator.gender || 'N/A',
+          case_number: caseNumbers.length ? caseNumbers.join(', ') : 'N/A',
+          abuse_type: abuseTypes.length ? abuseTypes.join(', ') : 'N/A'
+        }
+      })
 
       setReportData({
         cases: data?.cases || [],
-        victims: data?.victims || [],
-        perpetrators: data?.perpetrators || []
+        victims: normalizedVictims,
+        perpetrators: normalizedPerpetrators
       })
     } catch (err) {
+      // Handle cancellation quietly
+      if (err?.original?.name === 'CanceledError' || err?.message === 'canceled') {
+        setLoading(false)
+        return
+      }
       console.error('Failed to generate report:', err)
       setError('Failed to generate report. Please check server connection.')
       setReportData({ cases: [], victims: [], perpetrators: [] })
@@ -92,7 +135,7 @@ const ReportsPage = () => {
     } else if (tabValue === 1) {
       headers = ['Victim Name', 'Age', 'Gender', 'Case Number', 'Abuse Type']
       rows = reportData.victims.map(v => [
-        v.name || '',
+        v.fullName || '',
         v.age || '',
         v.gender || '',
         v.case_number || '',
@@ -101,7 +144,7 @@ const ReportsPage = () => {
     } else {
       headers = ['Perpetrator Name', 'Age', 'Gender', 'Case Number', 'Abuse Type']
       rows = reportData.perpetrators.map(p => [
-        p.name || '',
+        p.fullName || '',
         p.age || '',
         p.gender || '',
         p.case_number || '',
@@ -165,14 +208,14 @@ const ReportsPage = () => {
                   <TableCell>{formatDate(item.incident_date)}</TableCell>
                 </>}
                 {tabValue === 1 && <>
-                  <TableCell>{item.name}</TableCell>
+                  <TableCell>{item.fullName}</TableCell>
                   <TableCell>{item.age}</TableCell>
                   <TableCell>{item.gender}</TableCell>
                   <TableCell>{item.case_number}</TableCell>
                   <TableCell>{item.abuse_type?.replace('_', ' ') || 'N/A'}</TableCell>
                 </>}
                 {tabValue === 2 && <>
-                  <TableCell>{item.name}</TableCell>
+                  <TableCell>{item.fullName}</TableCell>
                   <TableCell>{item.age}</TableCell>
                   <TableCell>{item.gender}</TableCell>
                   <TableCell>{item.case_number}</TableCell>
@@ -200,10 +243,20 @@ const ReportsPage = () => {
         <LocalizationProvider dateAdapter={AdapterDateFns}>
           <Grid container spacing={2} sx={{ mb:3 }}>
             <Grid item xs={12} md={4}>
-              <DatePicker label="Start Date" value={startDate} onChange={setStartDate} renderInput={(params) => <TextField {...params} fullWidth />} />
+              <DatePicker 
+                label="Start Date" 
+                value={startDate} 
+                onChange={setStartDate} 
+                slotProps={{ textField: { fullWidth: true } }}
+              />
             </Grid>
             <Grid item xs={12} md={4}>
-              <DatePicker label="End Date" value={endDate} onChange={setEndDate} renderInput={(params) => <TextField {...params} fullWidth />} />
+              <DatePicker 
+                label="End Date" 
+                value={endDate} 
+                onChange={setEndDate} 
+                slotProps={{ textField: { fullWidth: true } }}
+              />
             </Grid>
             <Grid item xs={12} md={4} sx={{ display:'flex', gap:2 }}>
               <Button variant="contained" onClick={generateReport} disabled={loading} startIcon={loading ? <CircularProgress size={20} /> : <Refresh />}>
@@ -221,4 +274,4 @@ const ReportsPage = () => {
   )
 }
 
-export default ReportsPage
+export default ReportsPage;

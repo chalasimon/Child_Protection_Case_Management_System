@@ -22,14 +22,25 @@ export const incidentApi = {
   updateIncident: (id, data) => {
     const formData = new FormData()
     Object.keys(data).forEach((key) => {
-      if (key === 'evidence_files' && data[key]) {
-        data[key].forEach((file) => formData.append('evidence_files[]', file))
+      const value = data[key]
+      const shouldAppend =
+        value !== undefined &&
+        value !== null &&
+        !(typeof value === 'string' && value.trim() === '')
+
+      if (!shouldAppend) return
+
+      if (key === 'evidence_files' && Array.isArray(value) && value.length > 0) {
+        value.forEach((file) => formData.append('evidence_files[]', file))
       } else {
-        formData.append(key, data[key])
+        formData.append(key, value)
       }
     })
 
-    return api.put(`/incidents/${id}`, formData, {
+    // Use POST with method override to ensure Laravel handles multipart updates reliably
+    formData.append('_method', 'PUT')
+
+    return api.post(`/incidents/${id}`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
   },

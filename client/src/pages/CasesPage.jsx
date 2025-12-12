@@ -12,7 +12,7 @@ import {
 } from '@mui/icons-material'
 import { caseApi } from '../api/cases'
 import { useAuth } from '../hooks/useAuth'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 
 const CaseForm = ({ initialData = null, onCancel, onSaved }) => {
   const [form, setForm] = useState({
@@ -110,6 +110,7 @@ const CasesPage = () => {
   const { isAuthenticated, isAdmin } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
+  const { id: paramId } = useParams()
   const [cases, setCases] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -121,6 +122,8 @@ const CasesPage = () => {
   const [menuCase, setMenuCase] = useState(null)
   const [openForm, setOpenForm] = useState(false)
   const [editingCase, setEditingCase] = useState(null)
+  const [viewOpen, setViewOpen] = useState(false)
+  const [viewCase, setViewCase] = useState(null)
 
   const loadCases = async () => {
     setLoading(true)
@@ -146,6 +149,28 @@ const CasesPage = () => {
     const term = params.get('q') || ''
     setSearch(term)
   }, [location.search])
+
+  // Open view dialog when route param /cases/:id is present
+  useEffect(() => {
+    const load = async () => {
+      if (!paramId) {
+        setViewOpen(false)
+        setViewCase(null)
+        return
+      }
+      try {
+        const { data, error } = await caseApi.getCase(paramId)
+        if (error) throw error
+        setViewCase(data)
+        setViewOpen(true)
+      } catch (e) {
+        setError(e?.message || 'Failed to load case')
+        setViewOpen(false)
+        setViewCase(null)
+      }
+    }
+    load()
+  }, [paramId])
 
   const filteredCases = useMemo(() => {
     if (!search) return cases
@@ -220,13 +245,36 @@ const CasesPage = () => {
       )}
 
       <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleCloseMenu}>
-        <MenuItem onClick={()=>{ window.location.href=`/cases/${menuCase?.id}`; handleCloseMenu() }}>View</MenuItem>
+        <MenuItem onClick={()=>{ if(menuCase?.id){ navigate(`/cases/${menuCase.id}`) } handleCloseMenu() }}>View</MenuItem>
         <MenuItem onClick={()=>{ setEditingCase(menuCase); setOpenForm(true); handleCloseMenu() }}>Edit</MenuItem>
         <MenuItem onClick={()=>{ handleDelete(menuCase?.id); handleCloseMenu() }} sx={{ color:'error.main' }}>Delete</MenuItem>
       </Menu>
 
       <Dialog open={openForm} onClose={() => setOpenForm(false)} fullWidth maxWidth="md">
         <CaseForm initialData={editingCase} onCancel={() => setOpenForm(false)} onSaved={() => { setOpenForm(false); loadCases() }} />
+      </Dialog>
+
+      {/* View Case Dialog */}
+      <Dialog open={viewOpen} onClose={() => { setViewOpen(false); navigate('/cases', { replace: true }) }} fullWidth maxWidth="sm">
+        <DialogTitle>Case Details</DialogTitle>
+        <DialogContent dividers>
+          {viewCase ? (
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={6}><Typography variant="subtitle2">Case Number</Typography><Typography>{viewCase.case_number || `CASE-${viewCase.id}`}</Typography></Grid>
+              <Grid item xs={12} md={6}><Typography variant="subtitle2">Title</Typography><Typography>{viewCase.case_title || 'N/A'}</Typography></Grid>
+              <Grid item xs={12}><Typography variant="subtitle2">Description</Typography><Typography sx={{ whiteSpace:'pre-wrap' }}>{viewCase.case_description || 'N/A'}</Typography></Grid>
+              <Grid item xs={12} md={4}><Typography variant="subtitle2">Type</Typography><Chip label={(viewCase.abuse_type||'').replace('_',' ') || 'N/A'} size="small" /></Grid>
+              <Grid item xs={12} md={4}><Typography variant="subtitle2">Priority</Typography><Chip label={(viewCase.priority||'medium').toUpperCase()} size="small" /></Grid>
+              <Grid item xs={12} md={4}><Typography variant="subtitle2">Status</Typography><Chip label={(viewCase.status||'').replace('_',' ') || 'N/A'} size="small" /></Grid>
+              <Grid item xs={12}><Typography variant="subtitle2">Location</Typography><Typography>{viewCase.location || 'N/A'}</Typography></Grid>
+            </Grid>
+          ) : (
+            <Box sx={{ py:4, textAlign:'center' }}><CircularProgress/></Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => { setViewOpen(false); navigate('/cases', { replace: true }) }}>Close</Button>
+        </DialogActions>
       </Dialog>
     </Box>
   )

@@ -46,7 +46,9 @@ const VictimsPage = () => {
   const fetchCases = async () => {
     try {
       const response = await caseApi.getCases({ per_page: 100 });
-      setCases(response.data || []);
+      const data = response?.data;
+      const list = Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []);
+      setCases(list);
     } catch (err) {
       console.error("Failed to fetch cases:", err);
       setError("Failed to load cases.");

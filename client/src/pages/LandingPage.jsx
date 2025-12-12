@@ -1,721 +1,473 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { Box, Button, Container, Typography, Grid, Paper, Tooltip } from '@mui/material';
-import { styled } from '@mui/material/styles';
-import { tooltipClasses } from '@mui/material/Tooltip';
-import { Shield, People, Gavel, Security, AccessTime, Analytics } from '@mui/icons-material';
-import { motion } from 'framer-motion';
+import React, { useState } from "react"
+import { Link, useNavigate } from "react-router-dom"
+import { useDispatch } from "react-redux"
+import { Box, Container, Typography, Grid, Card, CardContent, Button, Stack, TextField, Alert } from "@mui/material"
+import { alpha } from "@mui/material/styles"
+import ShieldIcon from "@mui/icons-material/Shield"
+import PeopleIcon from "@mui/icons-material/People"
+import MapIcon from "@mui/icons-material/Map"
+import { authApi } from "../api/auth"
+import { setCredentials } from "../store/authSlice"
 
-// Custom styled tooltip with neutral theming
-const CustomTooltip = styled(({ className, ...props }) => (
-  <Tooltip {...props} classes={{ popper: className }} />
-))(({ theme }) => ({
-  [`& .${tooltipClasses.tooltip}`]: {
-    backgroundColor: '#2C3E50',
-    color: 'white',
-    boxShadow: theme.shadows[4],
-    fontSize: 14,
-    borderRadius: 8,
-    padding: '12px 16px',
-    maxWidth: 300,
+const SNNPR_COLORS = {
+  primary: "#2E7D32",
+  secondary: "#1976D2",
+  accent: "#ED6C02",
+  dark: "#263238",
+  gray: "#546E7A",
+  lightGray: "#F5F7FA",
+  white: "#FFFFFF",
+  water: "#E9F5FF",
+}
+
+const features = [
+  {
+    title: "Secure Case Management",
+    description: "Keep child protection records safe with role-based access and audit trails.",
+    icon: <ShieldIcon sx={{ color: SNNPR_COLORS.primary }} />,
   },
-  [`& .${tooltipClasses.arrow}`]: {
-    color: '#2C3E50',
+  {
+    title: "Multi-Zone Coordination",
+    description: "Coordinate across all SNNPR zones with unified dashboards and reports.",
+    icon: <MapIcon sx={{ color: SNNPR_COLORS.secondary }} />,
   },
-}));
+  {
+    title: "Community Integration",
+    description: "Engage local partners and NGOs to respond quickly and consistently.",
+    icon: <PeopleIcon sx={{ color: SNNPR_COLORS.accent }} />,
+  },
+]
 
 const LandingPage = () => {
-  // Animation variants
-  const fadeInUp = {
-    hidden: { opacity: 0, y: 40 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: {
-        duration: 0.6,
-        ease: "easeOut"
-      },
-    },
-  };
+  // Keep main canvas neutral; apply water tint only on navbar/footer
+  const bgGradient = `linear-gradient(135deg, ${SNNPR_COLORS.white} 0%, ${alpha(SNNPR_COLORS.primary, 0.05)} 100%)`
 
-  const staggerContainer = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.2,
-        delayChildren: 0.1
+  const dispatch = useDispatch()
+  const navigate = useNavigate()
+  const [email, setEmail] = useState("admin@test.com")
+  const [password, setPassword] = useState("password123")
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
+
+  const handleInlineLogin = async (event) => {
+    event.preventDefault()
+    setError("")
+    setLoading(true)
+    try {
+      const data = await authApi.login({ email, password })
+      if (!data?.token || !data?.user) {
+        throw new Error("Invalid response from server")
       }
+      dispatch(setCredentials({ user: data.user, token: data.token }))
+      navigate("/dashboard")
+    } catch (err) {
+      setError(err?.message || "Login failed. Please check credentials.")
+    } finally {
+      setLoading(false)
     }
-  };
-
-  const features = [
-    {
-      icon: <Shield sx={{ fontSize: 60, color: '#E74C3C' }} />,
-      title: 'Secure Case Management',
-      text: 'End-to-end encrypted handling of all sensitive case data with role-based access controls.',
-      delay: 0.1
-    },
-    {
-      icon: <People sx={{ fontSize: 60, color: '#27AE60' }} />,
-      title: 'Collaborative Platform',
-      text: 'Seamless collaboration between social workers, law enforcement, and legal teams.',
-      delay: 0.2
-    },
-    {
-      icon: <Gavel sx={{ fontSize: 60, color: '#8E44AD' }} />,
-      title: 'Streamlined Reporting',
-      text: 'Generate comprehensive reports for legal proceedings and case reviews efficiently.',
-      delay: 0.3
-    },
-    {
-      icon: <Security sx={{ fontSize: 60, color: '#E67E22' }} />,
-      title: 'HIPAA Compliant',
-      text: 'Fully compliant with healthcare privacy regulations and data protection standards.',
-      delay: 0.4
-    },
-    {
-      icon: <AccessTime sx={{ fontSize: 60, color: '#3498DB' }} />,
-      title: 'Real-time Updates',
-      text: 'Instant notifications and updates on case progress and important deadlines.',
-      delay: 0.5
-    },
-    {
-      icon: <Analytics sx={{ fontSize: 60, color: '#16A085' }} />,
-      title: 'Analytics Dashboard',
-      text: 'Comprehensive insights and analytics for better decision making and resource allocation.',
-      delay: 0.6
-    }
-  ];
+  }
 
   return (
-    <Box sx={{ 
-      background: 'linear-gradient(135deg, #F9F7F7 0%, #F0F0F0 30%, #FFFFFF 100%)',
-      minHeight: '100vh',
-      position: 'relative',
-      overflow: 'hidden',
-      '&::before': {
-        content: '""',
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        height: '600px',
-        background: 'linear-gradient(180deg, rgba(231, 76, 60, 0.05) 0%, transparent 100%)',
-        zIndex: 0,
-      }
-    }}>
-      {/* Decorative elements */}
+    <Box sx={{ minHeight: "100vh", bgcolor: SNNPR_COLORS.lightGray, background: bgGradient }}>
+      {/* Navbar separated from body */}
       <Box
-        component={motion.div}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 0.1 }}
-        transition={{ duration: 1 }}
         sx={{
-          position: 'absolute',
-          top: '10%',
-          right: '10%',
-          width: 300,
-          height: 300,
-          borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(231, 76, 60, 0.1) 0%, transparent 70%)',
-          zIndex: 0,
-        }}
-      />
-      
-      <Box
-        component={motion.div}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 0.1 }}
-        transition={{ duration: 1, delay: 0.5 }}
-        sx={{
-          position: 'absolute',
-          bottom: '20%',
-          left: '5%',
-          width: 200,
-          height: 200,
-          borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(155, 89, 182, 0.1) 0%, transparent 70%)',
-          zIndex: 0,
-        }}
-      />
-
-      {/* Header */}
-      <Box 
-        component={motion.div}
-        initial={{ y: -100, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ 
-          type: "spring",
-          stiffness: 100,
-          damping: 20,
-          duration: 0.5 
-        }}
-        sx={{ 
-          p: 3, 
-          bgcolor: 'rgba(255, 255, 255, 0.95)',
-          backdropFilter: 'blur(10px)',
-          borderBottom: '1px solid rgba(236, 240, 241, 0.5)',
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center',
-          position: 'relative',
+          position: "sticky",
+          top: 0,
           zIndex: 10,
+          bgcolor: alpha(SNNPR_COLORS.water, 0.92),
+          backdropFilter: "blur(8px)",
+          borderBottom: `1px solid ${alpha(SNNPR_COLORS.primary, 0.12)}`,
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Box sx={{ 
-            width: 40, 
-            height: 40, 
-            borderRadius: 2,
-            bgcolor: '#E74C3C',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'white',
-            fontWeight: 'bold',
-            fontSize: '1.25rem'
-          }}>
-            <Shield sx={{ fontSize: 24 }} />
-          </Box>
-          <CustomTooltip 
-            title="Child Abuse Protection Case Management System - A secure platform for child welfare professionals"
-            arrow
-            placement="bottom"
-            enterDelay={300}
-            leaveDelay={200}
-          >
-            <Typography 
-              variant="h6" 
-              component="div" 
-              sx={{ 
-                fontWeight: 700, 
-                color: '#2C3E50',
-                cursor: 'default',
-                letterSpacing: '-0.5px'
-              }}
-            >
-              CAPCMS
-            </Typography>
-          </CustomTooltip>
-        </Box>
-        
-        <Button 
-          variant="contained"
-          component={Link} 
-          to="/login"
-          sx={{
-            bgcolor: '#E74C3C',
-            color: 'white',
-            borderRadius: 2,
-            px: 4,
-            py: 1,
-            fontWeight: 600,
-            textTransform: 'none',
-            fontSize: '1rem',
-            boxShadow: '0 4px 14px rgba(231, 76, 60, 0.3)',
-            '&:hover': {
-              bgcolor: '#C0392B',
-              boxShadow: '0 6px 20px rgba(231, 76, 60, 0.4)',
-              transform: 'translateY(-2px)',
-            },
-            transition: 'all 0.3s ease',
-          }}
-        >
-          Get Started
-        </Button>
+        <Container maxWidth="lg" sx={{ py: 2.5 }}>
+          <Stack direction="row" justifyContent="space-between" alignItems="center">
+            <Stack direction="row" spacing={2} alignItems="center">
+              <ShieldIcon sx={{ color: SNNPR_COLORS.primary, fontSize: 32 }} />
+              <Box>
+                <Typography sx={{ color: SNNPR_COLORS.primary, fontWeight: 700 }}>Child Protection System</Typography>
+                <Typography sx={{ color: SNNPR_COLORS.gray, fontSize: 13 }}>Southern Nations, Nationalities, and Peoples' Region</Typography>
+              </Box>
+            </Stack>
+            <Stack direction="row" spacing={2}>
+              <Button
+                component={Link}
+                to="/login"
+                variant="text"
+                sx={{
+                  color: SNNPR_COLORS.gray,
+                  position: "relative",
+                  cursor: "pointer",
+                  transition: "color 150ms ease",
+                  '&::after': {
+                    content: '""',
+                    position: "absolute",
+                    left: 0,
+                    right: 0,
+                    bottom: 6,
+                    height: 2,
+                    bgcolor: alpha(SNNPR_COLORS.primary, 0.5),
+                    transform: "scaleX(0)",
+                    transformOrigin: "center",
+                    transition: "transform 180ms ease",
+                  },
+                  '&:hover': {
+                    color: SNNPR_COLORS.primary,
+                  },
+                  '&:hover::after': {
+                    transform: "scaleX(1)",
+                  },
+                }}
+              >
+                Login
+              </Button>
+              <Button
+                component={Link}
+                to="/dashboard"
+                variant="contained"
+                sx={{
+                  bgcolor: SNNPR_COLORS.primary,
+                  position: "relative",
+                  cursor: "pointer",
+                  transition: "transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease",
+                  '&:hover': {
+                    bgcolor: alpha(SNNPR_COLORS.primary, 0.9),
+                    boxShadow: `0 10px 20px ${alpha(SNNPR_COLORS.primary, 0.18)}`,
+                    transform: "translateY(-2px)",
+                  },
+                  '&::after': {
+                    content: '""',
+                    position: "absolute",
+                    left: 12,
+                    right: 12,
+                    bottom: 8,
+                    height: 2,
+                    bgcolor: alpha(SNNPR_COLORS.white, 0.85),
+                    transform: "scaleX(0)",
+                    transformOrigin: "center",
+                    transition: "transform 180ms ease",
+                  },
+                  '&:hover::after': {
+                    transform: "scaleX(1)",
+                  },
+                }}
+              >
+                Enter Portal
+              </Button>
+            </Stack>
+          </Stack>
+        </Container>
       </Box>
 
-      {/* Hero Section */}
-      <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1 }}>
-        <Box sx={{ 
-          textAlign: 'center', 
-          py: { xs: 8, md: 15 },
-          px: { xs: 2, md: 0 }
-        }}>
-          <motion.div
-            initial="hidden"
-            animate="visible"
-            variants={fadeInUp}
-          >
-            <Typography 
-              variant="h1" 
-              component="h1" 
-              gutterBottom 
-              sx={{ 
-                fontWeight: 800, 
-                color: '#2C3E50',
-                fontSize: { xs: '2.5rem', md: '3.5rem', lg: '4rem' },
-                lineHeight: 1.2,
-                mb: 3
-              }}
-            >
-              Protecting Our
-              <Box component="span" sx={{ color: '#E74C3C', display: 'block' }}>
-                Most Vulnerable
-              </Box>
-            </Typography>
-          </motion.div>
-          
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-          >
-            <Typography 
-              variant="h5" 
-              sx={{ 
-                color: '#34495E',
-                mb: 5,
-                maxWidth: 800,
-                mx: 'auto',
-                lineHeight: 1.6,
-                fontSize: { xs: '1.1rem', md: '1.25rem' }
-              }}
-            >
-              A comprehensive, secure platform for child protection professionals to manage cases, 
-              collaborate effectively, and ensure the safety and well-being of children in need.
-            </Typography>
-          </motion.div>
-          
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-          >
-            <Box sx={{ display: 'flex', gap: 3, justifyContent: 'center', flexWrap: 'wrap' }}>
-              <Button 
-                variant="contained" 
-                size="large" 
-                component={Link} 
-                to="/login" 
-                sx={{ 
-                  px: 6,
-                  py: 1.5,
-                  bgcolor: '#E74C3C',
-                  borderRadius: 2,
-                  fontSize: '1.1rem',
-                  fontWeight: 600,
-                  textTransform: 'none',
-                  boxShadow: '0 8px 24px rgba(231, 76, 60, 0.4)',
+      <Container maxWidth="lg" sx={{ pt: 5, pb: 6 }}>
+
+        {/* Hero */}
+        <Grid container spacing={6} alignItems="center">
+          <Grid item xs={12} md={6}>
+            <Stack spacing={3}>
+              <Typography sx={{ color: SNNPR_COLORS.dark, fontSize: { xs: "2rem", md: "2.75rem" }, fontWeight: 700, lineHeight: 1.2 }}>
+                Protecting children across SNNPR with one unified platform.
+              </Typography>
+              <Typography sx={{ color: SNNPR_COLORS.gray, fontSize: "1.05rem", lineHeight: 1.6 }}>
+                Manage cases, coordinate zones, and collaborate with partners securely and efficiently.
+              </Typography>
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+                <Button
+                  component={Link}
+                  to="/login"
+                  variant="contained"
+                  sx={{
+                    bgcolor: SNNPR_COLORS.primary,
+                    px: 3,
+                    py: 1.2,
+                    cursor: "pointer",
+                    transition: "transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease",
+                    '&:hover': {
+                      bgcolor: alpha(SNNPR_COLORS.primary, 0.9),
+                      boxShadow: `0 10px 20px ${alpha(SNNPR_COLORS.primary, 0.18)}`,
+                      transform: "translateY(-2px)",
+                    },
+                  }}
+                >
+                  Sign In
+                </Button>
+                <Button
+                  component={Link}
+                  to="/reports"
+                  variant="outlined"
+                  sx={{
+                    borderColor: SNNPR_COLORS.primary,
+                    color: SNNPR_COLORS.primary,
+                    px: 3,
+                    py: 1.2,
+                    cursor: "pointer",
+                    transition: "transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease",
+                    '&:hover': {
+                      bgcolor: alpha(SNNPR_COLORS.primary, 0.08),
+                      boxShadow: `0 10px 20px ${alpha(SNNPR_COLORS.primary, 0.12)}`,
+                      transform: "translateY(-2px)",
+                    },
+                  }}
+                >
+                  View Reports
+                </Button>
+              </Stack>
+            </Stack>
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <Stack spacing={3}>
+              <Card
+                sx={{
+                  borderRadius: 3,
+                  boxShadow: `0 12px 30px ${alpha(SNNPR_COLORS.primary, 0.12)}`,
+                  border: `1px solid ${alpha(SNNPR_COLORS.primary, 0.1)}`,
+                  transition: "transform 180ms ease, box-shadow 180ms ease",
+                  cursor: "pointer",
                   '&:hover': {
-                    bgcolor: '#C0392B',
-                    transform: 'translateY(-2px)',
-                    boxShadow: '0 12px 28px rgba(231, 76, 60, 0.5)',
+                    transform: "translateY(-4px)",
+                    boxShadow: `0 16px 34px ${alpha(SNNPR_COLORS.primary, 0.16)}`,
                   },
-                  transition: 'all 0.3s ease',
                 }}
               >
-                Start Protecting Now
-              </Button>
-              
-              <Button 
-                variant="outlined" 
-                size="large" 
-                sx={{ 
-                  px: 6,
-                  py: 1.5,
-                  borderColor: '#E74C3C',
-                  color: '#E74C3C',
-                  borderRadius: 2,
-                  fontSize: '1.1rem',
-                  fontWeight: 600,
-                  textTransform: 'none',
+                <CardContent>
+                  <Typography sx={{ color: SNNPR_COLORS.dark, mb: 2, fontWeight: 700 }}>Sign in</Typography>
+                  <Typography sx={{ color: SNNPR_COLORS.gray, mb: 2, fontSize: 14 }}>
+                    Enter your credentials to access the portal.
+                  </Typography>
+
+                  {error && (
+                    <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError("")}>
+                      {error}
+                    </Alert>
+                  )}
+
+                  <Box component="form" noValidate onSubmit={handleInlineLogin}>
+                    <Stack spacing={2}>
+                      <TextField
+                        label="Email"
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                        fullWidth
+                        autoComplete="email"
+                      />
+                      <TextField
+                        label="Password"
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                        fullWidth
+                        autoComplete="current-password"
+                      />
+                      <Button
+                        type="submit"
+                        variant="contained"
+                        disabled={loading}
+                        sx={{
+                          bgcolor: SNNPR_COLORS.primary,
+                          cursor: "pointer",
+                          transition: "transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease",
+                          '&:hover': {
+                            bgcolor: alpha(SNNPR_COLORS.primary, 0.9),
+                            boxShadow: `0 10px 20px ${alpha(SNNPR_COLORS.primary, 0.18)}`,
+                            transform: "translateY(-2px)",
+                          },
+                        }}
+                      >
+                        {loading ? "Signing in..." : "Sign in"}
+                      </Button>
+                    </Stack>
+                  </Box>
+                </CardContent>
+              </Card>
+
+              <Card
+                sx={{
+                  borderRadius: 3,
+                  boxShadow: `0 12px 30px ${alpha(SNNPR_COLORS.primary, 0.12)}`,
+                  border: `1px solid ${alpha(SNNPR_COLORS.primary, 0.1)}`,
+                  transition: "transform 180ms ease, box-shadow 180ms ease",
+                  cursor: "pointer",
                   '&:hover': {
-                    borderColor: '#C0392B',
-                    color: '#C0392B',
-                    bgcolor: 'rgba(231, 76, 60, 0.04)',
-                    transform: 'translateY(-2px)',
+                    transform: "translateY(-4px)",
+                    boxShadow: `0 16px 34px ${alpha(SNNPR_COLORS.primary, 0.16)}`,
                   },
-                  transition: 'all 0.3s ease',
                 }}
               >
-                Learn More
-              </Button>
-            </Box>
-          </motion.div>
+                <CardContent>
+                  <Typography sx={{ color: SNNPR_COLORS.dark, mb: 1, fontWeight: 700 }}>Quick snapshot</Typography>
+                  <Typography sx={{ color: SNNPR_COLORS.gray, mb: 3 }}>Cases, zones, and partners in one view.</Typography>
+                  <Box sx={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 2 }}>
+                    {[
+                      { label: "Cases Managed", value: "2,150+" },
+                      { label: "Zones Covered", value: "13" },
+                      { label: "Active Users", value: "480+" },
+                      { label: "Data Accuracy", value: "98.7%" },
+                    ].map((item) => (
+                      <Box
+                        key={item.label}
+                        sx={{
+                          p: 2,
+                          borderRadius: 2,
+                          bgcolor: alpha(SNNPR_COLORS.primary, 0.05),
+                          border: `1px solid ${alpha(SNNPR_COLORS.primary, 0.1)}`,
+                          cursor: "pointer",
+                          transition: "transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease",
+                          '&:hover': {
+                            transform: "translateY(-3px)",
+                            boxShadow: `0 10px 18px ${alpha(SNNPR_COLORS.primary, 0.12)}`,
+                            bgcolor: alpha(SNNPR_COLORS.primary, 0.08),
+                          },
+                        }}
+                      >
+                        <Typography sx={{ color: SNNPR_COLORS.dark, fontWeight: 700 }}>{item.value}</Typography>
+                        <Typography sx={{ color: SNNPR_COLORS.gray, fontSize: 13 }}>{item.label}</Typography>
+                      </Box>
+                    ))}
+                  </Box>
+                </CardContent>
+              </Card>
+            </Stack>
+          </Grid>
+        </Grid>
+
+        {/* Features */}
+        <Box sx={{ mt: 8 }}>
+          <Typography sx={{ textAlign: "center", color: SNNPR_COLORS.dark, fontWeight: 700, mb: 1 }}>Built for regional teams</Typography>
+          <Typography sx={{ textAlign: "center", color: SNNPR_COLORS.gray, mb: 4 }}>
+            Three essentials to start strong.
+          </Typography>
+          <Grid container spacing={3}>
+            {features.map((feat) => (
+              <Grid item xs={12} md={4} key={feat.title}>
+                <Card
+                  sx={{
+                    height: "100%",
+                    borderRadius: 3,
+                    border: `1px solid ${alpha(SNNPR_COLORS.primary, 0.1)}`,
+                    boxShadow: "0 6px 18px rgba(0,0,0,0.05)",
+                    p: 1,
+                    cursor: "pointer",
+                    transition: "transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease",
+                    '&:hover': {
+                      transform: "translateY(-4px)",
+                      boxShadow: "0 12px 22px rgba(0,0,0,0.08)",
+                      borderColor: alpha(SNNPR_COLORS.primary, 0.2),
+                    },
+                  }}
+                >
+                  <CardContent>
+                    <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1 }}>
+                      {feat.icon}
+                      <Typography sx={{ color: SNNPR_COLORS.dark, fontWeight: 700 }}>{feat.title}</Typography>
+                    </Stack>
+                    <Typography sx={{ color: SNNPR_COLORS.gray, lineHeight: 1.5 }}>{feat.description}</Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
         </Box>
+
       </Container>
 
-      {/* Features Section */}
-      <Box sx={{ 
-        bgcolor: 'rgba(255, 255, 255, 0.85)',
-        backdropFilter: 'blur(10px)',
-        py: { xs: 8, md: 12 },
-        position: 'relative',
-        zIndex: 1,
-      }}>
+      {/* Footer (full width) */}
+      <Box
+        component="footer"
+        sx={{
+          mt: 6,
+          py: 2.5,
+          width: "100%",
+          borderTop: `1px solid ${alpha(SNNPR_COLORS.primary, 0.12)}`,
+          background: alpha(SNNPR_COLORS.water, 0.8),
+          backdropFilter: "blur(6px)",
+          boxShadow: `0 12px 26px ${alpha(SNNPR_COLORS.primary, 0.08)}`,
+        }}
+      >
         <Container maxWidth="lg">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.2 }}
-            variants={fadeInUp}
-          >
-            <Typography 
-              variant="h2" 
-              align="center" 
-              gutterBottom
-              sx={{ 
-                fontWeight: 700, 
-                color: '#2C3E50',
-                mb: 8,
-                fontSize: { xs: '2rem', md: '2.5rem' }
-              }}
-            >
-              Why Choose CAPCMS?
-            </Typography>
-          </motion.div>
-          
-          <motion.div
-            variants={staggerContainer}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.1 }}
-          >
-            <Grid container spacing={4}>
-              {features.map((feature, index) => (
-                <Grid item xs={12} sm={6} md={4} key={index}>
-                  <motion.div
-                    variants={fadeInUp}
-                    custom={feature.delay}
-                  >
-                    <Paper 
-                      component={motion.div}
-                      whileHover={{ 
-                        y: -12, 
-                        boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
-                        transition: { duration: 0.3 }
-                      }}
-                      sx={{ 
-                        p: 4, 
-                        height: '100%',
-                        textAlign: 'center', 
-                        borderRadius: 4,
-                        border: '1px solid rgba(236, 240, 241, 0.5)',
-                        bgcolor: 'white',
-                        transition: 'all 0.3s ease',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                      }}
-                    >
-                      <Box sx={{ 
-                        width: 100,
-                        height: 100,
-                        borderRadius: '50%',
-                        bgcolor: 'rgba(236, 240, 241, 0.5)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        mb: 3,
-                      }}>
-                        {feature.icon}
-                      </Box>
-                      <Typography 
-                        variant="h5" 
-                        sx={{ 
-                          fontWeight: 600, 
-                          color: '#2C3E50',
-                          mb: 2 
-                        }}
-                      >
-                        {feature.title}
-                      </Typography>
-                      <Typography 
-                        sx={{ 
-                          color: '#7F8C8D',
-                          lineHeight: 1.6 
-                        }}
-                      >
-                        {feature.text}
-                      </Typography>
-                    </Paper>
-                  </motion.div>
-                </Grid>
-              ))}
+          <Grid container spacing={4}>
+            <Grid item xs={12} md={4}>
+              <Stack spacing={1.5}>
+                <Stack direction="row" spacing={1.5} alignItems="center">
+                  <ShieldIcon sx={{ color: SNNPR_COLORS.primary, fontSize: 28 }} />
+                  <Typography sx={{ color: SNNPR_COLORS.dark, fontWeight: 700 }}>Child Protection System</Typography>
+                </Stack>
+                <Typography sx={{ color: SNNPR_COLORS.gray, lineHeight: 1.6 }}>
+                  Southern Nations, Nationalities, and Peoples' Region platform for coordinated child safety.
+                </Typography>
+                <Button
+                  component={Link}
+                  to="/login"
+                  variant="contained"
+                  sx={{
+                    alignSelf: "flex-start",
+                    bgcolor: SNNPR_COLORS.primary,
+                    cursor: "pointer",
+                    transition: "transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease",
+                    '&:hover': {
+                      bgcolor: alpha(SNNPR_COLORS.primary, 0.9),
+                      boxShadow: `0 10px 20px ${alpha(SNNPR_COLORS.primary, 0.18)}`,
+                      transform: "translateY(-2px)",
+                    },
+                  }}
+                >
+                  Go to Login
+                </Button>
+              </Stack>
             </Grid>
-          </motion.div>
-        </Container>
-      </Box>
 
-      {/* Stats Section */}
-      <Box sx={{ 
-        py: { xs: 8, md: 12 },
-        position: 'relative',
-        zIndex: 1,
-        bgcolor: '#F9F9F9',
-      }}>
-        <Container maxWidth="lg">
-          <Grid container spacing={4} alignItems="center">
-            <Grid item xs={12} md={6}>
-              <motion.div
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true }}
-                variants={fadeInUp}
-              >
-                <Typography 
-                  variant="h3" 
-                  sx={{ 
-                    fontWeight: 700, 
-                    color: '#2C3E50',
-                    mb: 3
-                  }}
-                >
-                  Trusted by Child Protection Professionals Nationwide
-                </Typography>
-                <Typography 
-                  sx={{ 
-                    color: '#7F8C8D',
-                    lineHeight: 1.7,
-                    mb: 4
-                  }}
-                >
-                  Our platform is built with input from hundreds of social workers, 
-                  law enforcement officers, and legal professionals who work tirelessly 
-                  to protect children every day.
-                </Typography>
-              </motion.div>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <Grid container spacing={3}>
+            <Grid item xs={12} sm={6} md={4}>
+              <Stack spacing={1.5}>
+                <Typography sx={{ color: SNNPR_COLORS.dark, fontWeight: 700 }}>Quick links</Typography>
                 {[
-                  { value: '10,000+', label: 'Cases Managed' },
-                  { value: '2,400+', label: 'Active Professionals' },
-                  { value: '99.8%', label: 'System Uptime' },
-                  { value: '50+', label: 'States Served' }
-                ].map((stat, index) => (
-                  <Grid item xs={6} key={index}>
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      whileInView={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: index * 0.1 }}
-                      viewport={{ once: true }}
-                    >
-                      <Paper 
-                        sx={{ 
-                          p: 3,
-                          textAlign: 'center',
-                          borderRadius: 3,
-                          bgcolor: 'white',
-                          boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-                          height: '100%'
-                        }}
-                      >
-                        <Typography 
-                          variant="h4" 
-                          sx={{ 
-                            fontWeight: 700,
-                            color: '#E74C3C',
-                            mb: 1
-                          }}
-                        >
-                          {stat.value}
-                        </Typography>
-                        <Typography 
-                          sx={{ 
-                            color: '#34495E',
-                            fontSize: '0.9rem'
-                          }}
-                        >
-                          {stat.label}
-                        </Typography>
-                      </Paper>
-                    </motion.div>
-                  </Grid>
+                  { label: "Dashboard", to: "/dashboard" },
+                  { label: "Cases", to: "/cases" },
+                  { label: "Reports", to: "/reports" },
+                ].map((link) => (
+                  <Button
+                    key={link.label}
+                    component={Link}
+                    to={link.to}
+                    variant="text"
+                    sx={{
+                      justifyContent: "flex-start",
+                      color: SNNPR_COLORS.gray,
+                      px: 0,
+                      textTransform: "none",
+                      cursor: "pointer",
+                      transition: "color 140ms ease, transform 140ms ease",
+                      '&:hover': {
+                        color: SNNPR_COLORS.primary,
+                        transform: "translateX(4px)",
+                      },
+                    }}
+                  >
+                    {link.label}
+                  </Button>
                 ))}
-              </Grid>
+              </Stack>
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={4}>
+              <Stack spacing={1.5}>
+                <Typography sx={{ color: SNNPR_COLORS.dark, fontWeight: 700 }}>Contact</Typography>
+                <Typography sx={{ color: SNNPR_COLORS.gray }}>Regional Admin Desk</Typography>
+                <Typography sx={{ color: SNNPR_COLORS.gray }}>Email: support@snnpr.gov.et</Typography>
+                <Typography sx={{ color: SNNPR_COLORS.gray }}>Phone: +251-11-000-0000</Typography>
+              </Stack>
             </Grid>
           </Grid>
-        </Container>
-      </Box>
 
-      {/* CTA Section */}
-      <Box sx={{ 
-        py: { xs: 8, md: 12 },
-        position: 'relative',
-        zIndex: 1,
-      }}>
-        <Container maxWidth="md">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.3 }}
-            variants={fadeInUp}
-          >
-            <Paper 
-              sx={{ 
-                p: { xs: 4, md: 8 },
-                textAlign: 'center',
-                borderRadius: 4,
-                bgcolor: '#2C3E50',
-                color: 'white',
-                background: 'linear-gradient(135deg, #2C3E50 0%, #34495E 100%)',
-              }}
-            >
-              <Typography 
-                variant="h3" 
-                gutterBottom
-                sx={{ 
-                  fontWeight: 700,
-                  mb: 3,
-                  fontSize: { xs: '1.75rem', md: '2.5rem' }
-                }}
-              >
-                Ready to Make a Difference?
-              </Typography>
-              
-              <Typography 
-                variant="h6" 
-                sx={{ 
-                  mb: 5, 
-                  opacity: 0.9,
-                  maxWidth: 600,
-                  mx: 'auto'
-                }}
-              >
-                Join thousands of child protection professionals using CAPCMS to save time, 
-                improve collaboration, and better serve children in need.
-              </Typography>
-              
-              <Button 
-                variant="contained" 
-                size="large" 
-                component={Link} 
-                to="/login"
-                sx={{ 
-                  px: 6,
-                  py: 2,
-                  bgcolor: '#E74C3C',
-                  color: 'white',
-                  borderRadius: 2,
-                  fontSize: '1.1rem',
-                  fontWeight: 600,
-                  textTransform: 'none',
-                  '&:hover': {
-                    bgcolor: '#C0392B',
-                    transform: 'translateY(-2px)',
-                    boxShadow: '0 12px 24px rgba(0,0,0,0.2)',
-                  },
-                  transition: 'all 0.3s ease',
-                }}
-              >
-                Get Started Free
-              </Button>
-            </Paper>
-          </motion.div>
-        </Container>
-      </Box>
-
-      {/* Footer */}
-      <Box sx={{ 
-        p: 4, 
-        borderTop: '1px solid rgba(236, 240, 241, 0.5)',
-        bgcolor: '#2C3E50',
-        color: 'white',
-        position: 'relative',
-        zIndex: 1,
-      }}>
-        <Container maxWidth="lg">
-          <Box sx={{ 
-            display: 'flex', 
-            flexDirection: { xs: 'column', md: 'row' },
-            justifyContent: 'space-between', 
-            alignItems: 'center',
-            gap: 3
-          }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <Box sx={{ 
-                width: 32, 
-                height: 32, 
-                borderRadius: 1,
-                bgcolor: '#E74C3C',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'white',
-                fontWeight: 'bold',
-                fontSize: '1rem'
-              }}>
-                <Shield sx={{ fontSize: 18 }} />
-              </Box>
-              <Typography 
-                variant="h6" 
-                sx={{ 
-                  fontWeight: 700, 
-                  letterSpacing: '-0.5px'
-                }}
-              >
-                CAPCMS
-              </Typography>
-            </Box>
-            
-            <Typography 
-              variant="body2" 
-              sx={{ 
-                opacity: 0.8,
-                textAlign: { xs: 'center', md: 'left' }
-              }}
-            >
-              © {new Date().getFullYear()} Child Abuse Protection Case Management System. 
-              All rights reserved.
-            </Typography>
-            
-            <Box sx={{ display: 'flex', gap: 3 }}>
-              <Typography 
-                component={Link}
-                to="/privacy"
-                sx={{ 
-                  color: 'rgba(255, 255, 255, 0.8)',
-                  textDecoration: 'none',
-                  fontSize: '0.875rem',
-                  '&:hover': {
-                    color: 'white',
-                    textDecoration: 'underline',
-                  }
-                }}
-              >
-                Privacy Policy
-              </Typography>
-              
-              <Typography 
-                component={Link}
-                to="/terms"
-                sx={{ 
-                  color: 'rgba(255, 255, 255, 0.8)',
-                  textDecoration: 'none',
-                  fontSize: '0.875rem',
-                  '&:hover': {
-                    color: 'white',
-                    textDecoration: 'underline',
-                  }
-                }}
-              >
-                Terms of Service
-              </Typography>
-              
-              <Typography 
-                component={Link}
-                to="/contact"
-                sx={{ 
-                  color: 'rgba(255, 255, 255, 0.8)',
-                  textDecoration: 'none',
-                  fontSize: '0.875rem',
-                  '&:hover': {
-                    color: 'white',
-                    textDecoration: 'underline',
-                  }
-                }}
-              >
-                Contact
-              </Typography>
-            </Box>
-          </Box>
+          <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems="center" sx={{ mt: 4 }}>
+            <Typography sx={{ color: SNNPR_COLORS.gray, fontSize: 13 }}>© {new Date().getFullYear()} SNNPR Child Protection. All rights reserved.</Typography>
+            <Typography sx={{ color: SNNPR_COLORS.gray, fontSize: 13 }}>Data handled securely with role-based access.</Typography>
+          </Stack>
         </Container>
       </Box>
     </Box>
-  );
-};
+  )
+}
 
-export default LandingPage;
+export default LandingPage

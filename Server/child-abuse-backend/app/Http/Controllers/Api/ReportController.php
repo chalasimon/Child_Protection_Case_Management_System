@@ -219,39 +219,51 @@ class ReportController extends Controller
         $request->validate([
             'start_date' => 'sometimes|date',
             'end_date' => 'sometimes|date|after_or_equal:start_date',
+            'summary' => 'sometimes|boolean',
         ]);
 
         $start = $request->input('start_date', now()->subYear()->toDateString());
         $end = $request->input('end_date', now()->toDateString());
+        $includeSummary = filter_var($request->input('summary', true), FILTER_VALIDATE_BOOLEAN);
 
         $perpetrators = Perpetrator::whereHas('cases', function ($query) use ($start, $end) {
-            $query->whereDate('abuse_cases.created_at', '>=', $start)
-                  ->whereDate('abuse_cases.created_at', '<=', $end);
+                $query->whereDate('abuse_cases.created_at', '>=', $start)
+                      ->whereDate('abuse_cases.created_at', '<=', $end);
             })
-            ->with(['cases:id,case_number,case_title,abuse_type'])
+            ->select(['id','first_name','last_name','gender','age'])
+            ->with(['cases' => function ($q) {
+                $q->select('abuse_cases.id','case_number','abuse_type');
+            }])
             ->get();
 
-        $summary = [
-            'total_perpetrators' => $perpetrators->count(),
-            'by_gender' => $perpetrators->groupBy('gender')->map->count(),
-            'by_age_group' => [
-                '18-25' => $perpetrators->where('age', '>=', 18)->where('age', '<=', 25)->count(),
-                '26-35' => $perpetrators->where('age', '>=', 26)->where('age', '<=', 35)->count(),
-                '36-50' => $perpetrators->where('age', '>=', 36)->where('age', '<=', 50)->count(),
-                '51+' => $perpetrators->where('age', '>=', 51)->count(),
-                'unknown' => $perpetrators->whereNull('age')->count(),
-            ],
-            'with_previous_records' => $perpetrators->where('previous_records', true)->count(),
-            'by_occupation' => $perpetrators->groupBy('occupation')->map->count()->sortDesc(),
-            'by_relationship' => $perpetrators->groupBy('relationship_to_victim')->map->count()->sortDesc(),
-        ];
+        $summary = null;
+        if ($includeSummary) {
+            $summary = [
+                'total_perpetrators' => $perpetrators->count(),
+                'by_gender' => $perpetrators->groupBy('gender')->map->count(),
+                'by_age_group' => [
+                    '18-25' => $perpetrators->where('age', '>=', 18)->where('age', '<=', 25)->count(),
+                    '26-35' => $perpetrators->where('age', '>=', 26)->where('age', '<=', 35)->count(),
+                    '36-50' => $perpetrators->where('age', '>=', 36)->where('age', '<=', 50)->count(),
+                    '51+' => $perpetrators->where('age', '>=', 51)->count(),
+                    'unknown' => $perpetrators->whereNull('age')->count(),
+                ],
+                // Note: previous_records/occupation/relationship fields not selected to reduce payload.
+                // If needed for summary, fetch via separate lightweight queries.
+            ];
+        }
 
-        return response()->json([
-            'summary' => $summary,
+        $response = [
             'perpetrators' => $perpetrators,
             'period' => ['start_date' => $start, 'end_date' => $end],
             'generated_at' => now()->toDateTimeString()
-        ]);
+        ];
+
+        if ($includeSummary) {
+            $response['summary'] = $summary;
+        }
+
+        return response()->json($response);
     }
 
     public function incidentReport(Request $request)

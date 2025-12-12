@@ -89,11 +89,11 @@ const VictimForm = ({ initialData, cases = [], onSubmit, onCancel }) => {
               onChange={handleChange}
               required
             >
-              {cases.map((c) => (
-                <MenuItem key={c.id} value={c.id}>
-                  {c.case_number} - {c.case_title}
-                </MenuItem>
-              ))}
+                {(Array.isArray(cases) ? cases : []).map((c) => (
+                  <MenuItem key={c.id} value={c.id}>
+                    {(c.case_number || `CASE-${c.id}`)} - {c.case_title || 'Untitled'}
+                  </MenuItem>
+                ))}
             </TextField>
           </Grid>
 

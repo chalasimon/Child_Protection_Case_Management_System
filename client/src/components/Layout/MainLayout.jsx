@@ -1,5 +1,5 @@
 // src/components/Layout/MainLayout.jsx
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import {
   AppBar,
@@ -44,6 +44,8 @@ const MainLayout = () => {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [anchorEl, setAnchorEl] = useState(null)
   const [notificationsAnchorEl, setNotificationsAnchorEl] = useState(null)
+  const [notifications, setNotifications] = useState([])
+  const [unreadCount, setUnreadCount] = useState(0)
   const navigate = useNavigate()
   const location = useLocation()
   const dispatch = useDispatch()
@@ -79,11 +81,23 @@ const MainLayout = () => {
 
   const handleNotificationsOpen = (event) => {
     setNotificationsAnchorEl(event.currentTarget)
+    setUnreadCount(0)
   }
 
   const handleNotificationsClose = () => {
     setNotificationsAnchorEl(null)
   }
+
+  // Mock notification fetch; replace with API call when backend endpoint is available
+  useEffect(() => {
+    const items = [
+      { id: 1, text: 'New case assigned to you', time: '2 hours ago', path: '/cases' },
+      { id: 2, text: 'Follow-up required for CASE-001', time: '1 day ago', path: '/cases' },
+      { id: 3, text: 'Incident report awaiting review', time: '3 days ago', path: '/incidents' },
+    ]
+    setNotifications(items)
+    setUnreadCount(items.length)
+  }, [])
 
   const handleLogout = () => {
     dispatch(logout())
@@ -212,7 +226,7 @@ const MainLayout = () => {
             sx={{ mr: 2 }}
             onClick={handleNotificationsOpen}
           >
-            <Badge badgeContent={3} color="error">
+            <Badge badgeContent={unreadCount} color="error">
               <NotificationsIcon />
             </Badge>
           </IconButton>
@@ -278,21 +292,27 @@ const MainLayout = () => {
               </Typography>
             </Box>
             <Divider />
-            <MenuItem>
-              <Box>
-                <Typography variant="body2">New case assigned to you</Typography>
-                <Typography variant="caption" color="text.secondary">
-                  2 hours ago
-                </Typography>
-              </Box>
-            </MenuItem>
-            <MenuItem>
-              <Box>
-                <Typography variant="body2">Follow-up required for CASE-001</Typography>
-                <Typography variant="caption" color="text.secondary">
-                  1 day ago
-                </Typography>
-              </Box>
+            {notifications.length === 0 && (
+              <MenuItem disabled>
+                <Typography variant="body2">No new alerts</Typography>
+              </MenuItem>
+            )}
+            {notifications.map((n) => (
+              <MenuItem key={n.id} onClick={() => { if (n.path) navigate(n.path); handleNotificationsClose() }}>
+                <Box>
+                  <Typography variant="body2">{n.text}</Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {n.time}
+                  </Typography>
+                </Box>
+              </MenuItem>
+            ))}
+            <Divider />
+            <MenuItem onClick={() => { navigate('/incidents'); handleNotificationsClose() }}>
+              <ListItemIcon>
+                <IncidentsIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText primary="View all alerts" />
             </MenuItem>
           </Menu>
         </Toolbar>

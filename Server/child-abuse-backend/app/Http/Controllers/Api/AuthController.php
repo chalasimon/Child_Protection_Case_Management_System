@@ -68,9 +68,14 @@ class AuthController extends Controller
             return response()->json(['message' => 'Current password incorrect'], 422);
         }
 
-        $user->password = bcrypt($data['new_password']);
-        $user->save();
+        // Update password and invalidate existing tokens so old credentials/tokens cannot be reused
+        $user->forceFill([
+            'password' => Hash::make($data['new_password']),
+        ])->save();
 
-        return response()->json(['message' => 'Password changed']);
+        // Revoke all tokens (including current) to enforce re-login with the new password
+        $user->tokens()->delete();
+
+        return response()->json(['message' => 'Password changed. Please log in again with your new password.']);
     }
 }

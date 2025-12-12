@@ -4,7 +4,7 @@ export const caseApi = {
   getCases: async (params = {}) => {
     try {
       const res = await api.get('/cases', { params })
-      return { data: res.data, error: null }
+      return { data: res, error: null }
     } catch (error) {
       return { data: null, error }
     }
@@ -13,7 +13,7 @@ export const caseApi = {
   getCase: async (id) => {
     try {
       const res = await api.get(`/cases/${id}`)
-      return { data: res.data, error: null }
+      return { data: res, error: null }
     } catch (error) {
       return { data: null, error }
     }
@@ -22,7 +22,7 @@ export const caseApi = {
   getCaseStats: async (id) => {
     try {
       const res = await api.get(`/cases/${id}/stats`)
-      return { data: res.data, error: null }
+      return { data: res, error: null }
     } catch (error) {
       return { data: null, error }
     }
@@ -31,7 +31,7 @@ export const caseApi = {
   getCaseNotes: async (id) => {
     try {
       const res = await api.get(`/cases/${id}/notes`)
-      return { data: res.data, error: null }
+      return { data: res, error: null }
     } catch (error) {
       return { data: null, error }
     }
@@ -40,7 +40,7 @@ export const caseApi = {
   createCase: async (data) => {
     try {
       const res = await api.post('/cases', data)
-      return { data: res.data, error: null }
+      return { data: res, error: null }
     } catch (error) {
       return { data: null, error }
     }
@@ -49,7 +49,7 @@ export const caseApi = {
   updateCase: async (id, data) => {
     try {
       const res = await api.put(`/cases/${id}`, data)
-      return { data: res.data, error: null }
+      return { data: res, error: null }
     } catch (error) {
       return { data: null, error }
     }
@@ -58,7 +58,7 @@ export const caseApi = {
   deleteCase: async (id) => {
     try {
       const res = await api.delete(`/cases/${id}`)
-      return { data: res.data, error: null }
+      return { data: res, error: null }
     } catch (error) {
       return { data: null, error }
     }
@@ -67,7 +67,7 @@ export const caseApi = {
   addNote: async (id, data) => {
     try {
       const res = await api.post(`/cases/${id}/notes`, data)
-      return { data: res.data, error: null }
+      return { data: res, error: null }
     } catch (error) {
       return { data: null, error }
     }
@@ -76,7 +76,7 @@ export const caseApi = {
   deleteNote: async (id, noteId) => {
     try {
       const res = await api.delete(`/cases/${id}/notes/${noteId}`)
-      return { data: res.data, error: null }
+      return { data: res, error: null }
     } catch (error) {
       return { data: null, error }
     }
