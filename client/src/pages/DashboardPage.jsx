@@ -203,85 +203,58 @@ const DashboardPage = () => {
     setError('')
 
     try {
-      // SNNPR Zone Data
-      const snnprZones = [
-        { name: 'Gurage', cases: 420, woredas: 15, icon: <LocationOn /> },
-        { name: 'Hadiya', cases: 380, woredas: 12, icon: <LocationOn /> },
-        { name: 'Kembata', cases: 295, woredas: 9, icon: <LocationOn /> },
-        { name: "Silt'e", cases: 245, woredas: 8, icon: <LocationOn /> },
-        { name: 'Wolayita', cases: 510, woredas: 18, icon: <LocationOn /> },
-        { name: 'Bench Sheko', cases: 180, woredas: 7, icon: <LocationOn /> },
-        { name: 'Keffa', cases: 320, woredas: 11, icon: <LocationOn /> },
-      ]
-      setZoneData(snnprZones)
+      const currentYear = dayjs().year()
 
-      // Mock monthly data for SNNPR (Ethiopian calendar months)
-      const months = ['Meskerem', 'Tikimt', 'Hidar', 'Tahsas', 'Tir', 'Yekatit', 'Megabit', 'Miazia', 'Ginbot', 'Sene', 'Hamle', 'Nehase']
-      const monthlyData = months.slice(0, 6).map((month, index) => ({
-        month,
-        cases: Math.floor(Math.random() * 150) + 50,
-        trend: Math.floor(Math.random() * 50) + 30,
-      }))
-      setMonthlyCases(monthlyData)
-
-      // Mock abuse type data for SNNPR
-      setAbuseTypeData([
-        { name: 'Physical Abuse', value: 38 },
-        { name: 'Neglect', value: 28 },
-        { name: 'Emotional', value: 18 },
-        { name: 'Sexual', value: 12 },
-        { name: 'Exploitation', value: 4 },
+      const [statsRes, abuseTypeRes, recentCasesRes, yearlyRes] = await Promise.all([
+        dashboardApi.getStats(),
+        dashboardApi.getAbuseTypeStats(),
+        dashboardApi.getRecentCases(),
+        dashboardApi.getYearlyStats(currentYear),
       ])
 
-      // Mock recent cases for SNNPR
-      const recentCasesData = [
-        { 
-          id: 1, 
-          case_number: 'SNNPR-2024-001', 
-          case_title: 'Child Neglect in Wolayita Zone', 
-          abuse_type: 'neglect', 
-          status: 'active', 
-          created_at: '2024-01-15',
-          zone: 'Wolayita'
-        },
-        { 
-          id: 2, 
-          case_number: 'SNNPR-2024-002', 
-          case_title: 'School Abuse in Gurage Zone', 
-          abuse_type: 'physical_abuse', 
-          status: 'investigating', 
-          created_at: '2024-01-14',
-          zone: 'Gurage'
-        },
-        { 
-          id: 3, 
-          case_number: 'SNNPR-2024-003', 
-          case_title: 'Family Violence in Hadiya Zone', 
-          abuse_type: 'emotional', 
-          status: 'resolved', 
-          created_at: '2024-01-12',
-          zone: 'Hadiya'
-        },
-       
-      ]
-      setRecentCases(recentCasesData)
-
-      // Mock stats for SNNPR
+      const statsData = statsRes?.data || statsRes || {}
       setStats({
-        totalCases: 2150,
-        activeCases: 480,
-        resolvedCases: 1520,
-        newThisWeek: 45,
-        pendingReview: 150,
-        zonesCovered: 13,
-        avgResolutionTime: '12.5',
+        totalCases: statsData.totalCases ?? statsData.total_cases ?? 0,
+        activeCases: statsData.activeCases ?? statsData.active_cases ?? 0,
+        resolvedCases: statsData.resolvedCases ?? statsData.resolved_cases ?? 0,
+        newThisWeek: statsData.newThisWeek ?? statsData.new_this_week ?? 0,
+        pendingReview: statsData.pendingReview ?? statsData.pending_review ?? 0,
+        zonesCovered: statsData.zonesCovered ?? statsData.zones_covered ?? 0,
+        avgResolutionTime: (statsData.avgResolutionTime ?? statsData.avg_resolution_time ?? 0).toString(),
       })
+
+      const abuseData = abuseTypeRes?.data || abuseTypeRes || []
+      setAbuseTypeData(Array.isArray(abuseData) ? abuseData : (abuseData.items || []))
+
+      const recent = recentCasesRes?.data || recentCasesRes || []
+      const recentArr = Array.isArray(recent) ? recent : (recent.items || [])
+      setRecentCases(recentArr)
+
+      const yearly = yearlyRes?.data || yearlyRes || {}
+      const monthsArr = yearly.months || yearly.items || []
+      const normalizedMonths = monthsArr.map((m) => ({
+        month: m.label || m.month || m.name,
+        cases: m.cases ?? m.total ?? 0,
+        trend: m.trend ?? m.cases ?? m.total ?? 0,
+      }))
+      const lastSix = normalizedMonths.slice(-6)
+      setMonthlyCases(lastSix)
+
+      const zoneCounts = {}
+      recentArr.forEach((c) => {
+        const zoneName = c.zone || c.zone_name || c.location_zone || 'Unknown'
+        zoneCounts[zoneName] = (zoneCounts[zoneName] || 0) + 1
+      })
+      const zones = Object.entries(zoneCounts)
+        .map(([name, count]) => ({ name, cases: count }))
+        .sort((a, b) => b.cases - a.cases)
+      setZoneData(zones)
 
     } catch (err) {
       console.error('Error fetching dashboard data:', err)
       setError('Failed to load dashboard data. Please try again.')
     } finally {
-      setTimeout(() => setLoading(false), 800)
+      setLoading(false)
     }
   }
 
@@ -351,6 +324,19 @@ const DashboardPage = () => {
       bgcolor: SNNPR_COLORS.lightGray,
       minHeight: '100vh',
     }}>
+      {error && (
+        <Alert
+          severity="error"
+          sx={{ mb: 2 }}
+          action={
+            <Button color="inherit" size="small" onClick={fetchDashboardData}>
+              Retry
+            </Button>
+          }
+        >
+          {error}
+        </Alert>
+      )}
       
 
       {/* Stats Cards */}
