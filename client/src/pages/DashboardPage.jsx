@@ -415,15 +415,15 @@ const DashboardPage = () => {
                 }
               }}
             >
-              <CardContent sx={{ p: 3, pt: 4 }}>
+              <CardContent sx={{ p: 2.25, pt: 3 }}>
                 <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 1 }}>
                   <Avatar
                     sx={{
                       bgcolor: alpha(stat.color, 0.1),
                       color: stat.color,
-                      width: 25,
-                      height: 25,
-                      mr: 2,
+                      width: 22,
+                      height: 22,
+                      mr: 1.5,
                       border: `2px solid ${alpha(stat.color, 0.2)}`,
                     }}
                   >
@@ -432,16 +432,16 @@ const DashboardPage = () => {
                   <Box sx={{ flex: 1 }}>
                     <Typography sx={{ 
                       color: SNNPR_COLORS.dark,
-                      fontSize: '2.5rem',
+                      fontSize: '2rem',
                       lineHeight: 1,
-                      mb: 1,
+                      mb: 0.5,
                     }}>
                       {stat.value}
                     </Typography>
                     <Typography sx={{ 
                       color: stat.color,
-                      fontSize: '1rem',
-                      mb: 0.5,
+                      fontSize: '0.95rem',
+                      mb: 0.25,
                     }}>
                       {stat.title}
                     </Typography>
@@ -451,16 +451,16 @@ const DashboardPage = () => {
                 <Box sx={{ 
                   display: 'flex', 
                   alignItems: 'center', 
-                  mt: 1,
-                  p: 1.5,
+                  mt: 0.5,
+                  p: 1.1,
                   borderRadius: 2,
                   bgcolor: alpha(stat.color, 0.05),
                   border: `1px solid ${alpha(stat.color, 0.1)}`,
                 }}>
-                  <TrendingUpIcon sx={{ color: stat.color, fontSize: 10, mr: 1 }} />
+                  <TrendingUpIcon sx={{ color: stat.color, fontSize: 9, mr: 0.75 }} />
                   <Typography sx={{ 
                     color: stat.color,
-                    fontSize: '0.875rem',
+                    fontSize: '0.8rem',
                   }}>
                     {stat.change}
                   </Typography>
@@ -477,7 +477,7 @@ const DashboardPage = () => {
         <Grid item xs={12} lg={8}>
           <Paper 
             sx={{
-              p: 3,
+              p: 2,
               borderRadius: 3,
               bgcolor: SNNPR_COLORS.white,
               border: `1px solid ${alpha(SNNPR_COLORS.primary, 0.1)}`,
@@ -505,41 +505,38 @@ const DashboardPage = () => {
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart
                   data={monthlyCases}
-                  margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
+                  margin={{ top: 8, right: 8, left: 8, bottom: 8 }}
                 >
-                <CartesianGrid 
-                  strokeDasharray="33" 
-                  stroke={alpha(SNNPR_COLORS.gray, 0.2)} 
-                  vertical={false}
-                />
+                {/* Minimize grid to reduce visual whitespace */}
+                <CartesianGrid strokeDasharray="12" stroke={alpha(SNNPR_COLORS.gray, 0.15)} vertical={false} />
                 <XAxis 
                   dataKey="month" 
                   axisLine={{ stroke: alpha(SNNPR_COLORS.gray, 0.3) }}
                   tickLine={false}
-                  tick={{ fill: SNNPR_COLORS.gray, fontSize: 12 }}
+                  tick={{ fill: SNNPR_COLORS.gray, fontSize: 11 }}
                 />
                 <YAxis 
                   axisLine={{ stroke: alpha(SNNPR_COLORS.gray, 0.3) }}
                   tickLine={false}
-                  tick={{ fill: SNNPR_COLORS.gray, fontSize: 12 }}
+                  tick={{ fill: SNNPR_COLORS.gray, fontSize: 11 }}
                 />
                 <Tooltip content={<CustomTooltip />} />
                 <Line 
                   type="monotone" 
                   dataKey="cases" 
                   stroke={SNNPR_COLORS.primary}
-                  strokeWidth={2}
-                  dot={{ stroke: SNNPR_COLORS.primary, strokeWidth: 2, r: 4 }}
-                  activeDot={{ r: 6, strokeWidth: 2 }}
+                  strokeWidth={1.8}
+                  dot={{ stroke: SNNPR_COLORS.primary, strokeWidth: 1.6, r: 3 }}
+                  activeDot={{ r: 5, strokeWidth: 2 }}
                   name="Reported Cases"
                 />
                 <Line 
                   type="monotone" 
                   dataKey="trend" 
                   stroke={SNNPR_COLORS.secondary}
-                  strokeWidth={2}
+                  strokeWidth={1.8}
                   strokeDasharray="5 5"
-                  dot={{ stroke: SNNPR_COLORS.secondary, strokeWidth: 2, r: 4 }}
+                  dot={{ stroke: SNNPR_COLORS.secondary, strokeWidth: 1.6, r: 3 }}
                   name="Trend Line"
                 />
               </LineChart>
@@ -616,26 +613,30 @@ const DashboardPage = () => {
               }}>
                 Top Zones by Case Volume
               </Typography>
-              <List dense>
-                {zoneData.slice(0, 4).map((zone, index) => (
-                  <ListItem key={index} sx={{ py: 0.5 }}>
-                    <ListItemIcon sx={{ minWidth: 32 }}>
-                      <Box sx={{ 
-                        width: 12, 
-                        height: 12, 
-                        borderRadius: '2px', 
-                        bgcolor: ZONE_COLORS[index],
-                      }} />
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={zone.name}
-                      secondary={`${zone.cases} cases • ${zone.woredas} woredas`}
-                      primaryTypographyProps={{ sx: { color: SNNPR_COLORS.dark, fontSize: '0.875rem' } }}
-                      secondaryTypographyProps={{ sx: { color: SNNPR_COLORS.gray, fontSize: '0.75rem' } }}
-                    />
-                  </ListItem>
+              <Grid container spacing={1}>
+                {zoneData.slice(0, 6).map((zone, index) => (
+                  <Grid item xs={12} sm={6} key={index}>
+                    <List dense>
+                      <ListItem sx={{ py: 0.5 }}>
+                        <ListItemIcon sx={{ minWidth: 28 }}>
+                          <Box sx={{ 
+                            width: 12, 
+                            height: 12, 
+                            borderRadius: '2px', 
+                            bgcolor: ZONE_COLORS[index % ZONE_COLORS.length],
+                          }} />
+                        </ListItemIcon>
+                        <ListItemText
+                          primary={zone.name}
+                          secondary={`${zone.cases} cases • ${zone.woredas} woredas`}
+                          primaryTypographyProps={{ sx: { color: SNNPR_COLORS.dark, fontSize: '0.875rem' } }}
+                          secondaryTypographyProps={{ sx: { color: SNNPR_COLORS.gray, fontSize: '0.75rem' } }}
+                        />
+                      </ListItem>
+                    </List>
+                  </Grid>
                 ))}
-              </List>
+              </Grid>
             </Box>
           </Paper>
         </Grid>

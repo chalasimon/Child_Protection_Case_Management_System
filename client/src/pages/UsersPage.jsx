@@ -51,6 +51,11 @@ const UsersPage = () => {
   const [selectedUser, setSelectedUser] = useState(null)
   const [viewDialogOpen, setViewDialogOpen] = useState(false)
   const [viewUser, setViewUser] = useState(null)
+  const [pwdDialogOpen, setPwdDialogOpen] = useState(false)
+  const [pwdUser, setPwdUser] = useState(null)
+  const [pwdData, setPwdData] = useState({ new_password: '', new_password_confirmation: '' })
+  const [pwdSubmitting, setPwdSubmitting] = useState(false)
+  const [pwdError, setPwdError] = useState('')
 
   // Fetch users from API
   const fetchUsers = async () => {
@@ -141,6 +146,37 @@ const UsersPage = () => {
   const handleEditUser = (user) => {
     setSelectedUser(user)
     setOpenForm(true)
+  }
+
+  const openPasswordDialog = (user) => {
+    setPwdUser(user)
+    setPwdData({ new_password: '', new_password_confirmation: '' })
+    setPwdError('')
+    setPwdDialogOpen(true)
+  }
+
+  const handleChangePassword = async () => {
+    setPwdSubmitting(true)
+    setPwdError('')
+    try {
+      if (pwdData.new_password !== pwdData.new_password_confirmation) {
+        setPwdError('Passwords do not match')
+        setPwdSubmitting(false)
+        return
+      }
+      await api.post(`/users/${pwdUser.id}/change-password`, {
+        new_password: pwdData.new_password,
+        new_password_confirmation: pwdData.new_password_confirmation,
+      })
+      setSuccess('Password updated. User must re-login.')
+      setPwdDialogOpen(false)
+      setPwdUser(null)
+    } catch (err) {
+      const apiErrors = err?.errors ? Object.values(err.errors).flat() : []
+      setPwdError(apiErrors[0] || err.message || 'Failed to update password')
+    } finally {
+      setPwdSubmitting(false)
+    }
   }
 
   // Helper functions
@@ -562,6 +598,14 @@ const UsersPage = () => {
                         </IconButton>
                         <IconButton
                           size="small"
+                          color="warning"
+                          onClick={() => openPasswordDialog(user)}
+                          title="Change Password"
+                        >
+                          <LockIcon fontSize="small" />
+                        </IconButton>
+                        <IconButton
+                          size="small"
                           color="error"
                           onClick={() => handleDeleteUser(user.id)}
                           title="Delete"
@@ -695,6 +739,42 @@ const UsersPage = () => {
             </DialogActions>
           </>
         )}
+      </Dialog>
+
+      {/* Change Password Dialog */}
+      <Dialog open={pwdDialogOpen} onClose={() => setPwdDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Change Password</DialogTitle>
+        <DialogContent dividers>
+          {pwdError && (
+            <Alert severity="error" sx={{ mb: 2 }} onClose={() => setPwdError('')}>
+              {pwdError}
+            </Alert>
+          )}
+          <TextField
+            fullWidth
+            label="New Password"
+            type="password"
+            value={pwdData.new_password}
+            onChange={(e) => setPwdData(prev => ({ ...prev, new_password: e.target.value }))}
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            fullWidth
+            label="Confirm New Password"
+            type="password"
+            value={pwdData.new_password_confirmation}
+            onChange={(e) => setPwdData(prev => ({ ...prev, new_password_confirmation: e.target.value }))}
+          />
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            The user will be signed out and must log in again.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setPwdDialogOpen(false)} disabled={pwdSubmitting}>Cancel</Button>
+          <Button variant="contained" onClick={handleChangePassword} disabled={pwdSubmitting}
+            startIcon={pwdSubmitting ? <CircularProgress size={20} /> : null}
+          >Update Password</Button>
+        </DialogActions>
       </Dialog>
     </Box>
   )

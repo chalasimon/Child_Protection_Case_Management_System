@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
 {
@@ -90,5 +91,33 @@ class UserController extends Controller
         $user->is_active = false;
         $user->save();
         return response()->json(['message' => 'Deactivated', 'user' => $user]);
+    }
+
+    /**
+     * Admin: Change another user's password
+     */
+    public function changeUserPassword(Request $request, $id)
+    {
+        $actor = $request->user();
+
+        if (!in_array($actor->role, ['system_admin', 'admin'])) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
+        $data = $request->validate([
+            'new_password' => ['required','string','min:8','confirmed'],
+        ]);
+
+        $user = User::findOrFail($id);
+
+        // Let the User model mutator hash the password; avoid double-hashing
+        $user->forceFill([
+            'password' => $data['new_password'],
+        ])->save();
+
+        // Revoke all tokens for the target user so they must re-login
+        $user->tokens()->delete();
+
+        return response()->json(['message' => 'Password updated and user notified to re-login.']);
     }
 }

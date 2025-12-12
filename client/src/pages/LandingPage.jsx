@@ -1,7 +1,7 @@
 import React, { useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { useDispatch } from "react-redux"
-import { Box, Container, Typography, Grid, Card, CardContent, Button, Stack, TextField, Alert } from "@mui/material"
+import { Box, Container, Typography, Grid, Card, CardContent, Button, Stack, TextField, Alert, Divider } from "@mui/material"
 import { alpha } from "@mui/material/styles"
 import ShieldIcon from "@mui/icons-material/Shield"
 import PeopleIcon from "@mui/icons-material/People"
@@ -44,10 +44,17 @@ const LandingPage = () => {
 
   const dispatch = useDispatch()
   const navigate = useNavigate()
-  const [email, setEmail] = useState("admin@test.com")
-  const [password, setPassword] = useState("password123")
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+
+  const scrollToLogin = () => {
+    const el = document.getElementById("inline-login")
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" })
+    }
+  }
 
   const handleInlineLogin = async (event) => {
     event.preventDefault()
@@ -91,8 +98,7 @@ const LandingPage = () => {
             </Stack>
             <Stack direction="row" spacing={2}>
               <Button
-                component={Link}
-                to="/login"
+                onClick={scrollToLogin}
                 variant="text"
                 sx={{
                   color: SNNPR_COLORS.gray,
@@ -119,11 +125,10 @@ const LandingPage = () => {
                   },
                 }}
               >
-                Login
+                Sign in
               </Button>
               <Button
-                component={Link}
-                to="/dashboard"
+                onClick={() => navigate("/dashboard")}
                 variant="contained"
                 sx={{
                   bgcolor: SNNPR_COLORS.primary,
@@ -152,7 +157,7 @@ const LandingPage = () => {
                   },
                 }}
               >
-                Enter Portal
+                Dashboard
               </Button>
             </Stack>
           </Stack>
@@ -162,35 +167,17 @@ const LandingPage = () => {
       <Container maxWidth="lg" sx={{ pt: 5, pb: 6 }}>
 
         {/* Hero */}
-        <Grid container spacing={6} alignItems="center">
+        <Grid container spacing={6} alignItems="start">
           <Grid item xs={12} md={6}>
-            <Stack spacing={3}>
+            <Stack spacing={3} sx={{ maxWidth: 520 }}>
               <Typography sx={{ color: SNNPR_COLORS.dark, fontSize: { xs: "2rem", md: "2.75rem" }, fontWeight: 700, lineHeight: 1.2 }}>
-                Protecting children across SNNPR with one unified platform.
+                Protecting children across SNNPR with one Unified platform.
               </Typography>
               <Typography sx={{ color: SNNPR_COLORS.gray, fontSize: "1.05rem", lineHeight: 1.6 }}>
                 Manage cases, coordinate zones, and collaborate with partners securely and efficiently.
               </Typography>
               <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-                <Button
-                  component={Link}
-                  to="/login"
-                  variant="contained"
-                  sx={{
-                    bgcolor: SNNPR_COLORS.primary,
-                    px: 3,
-                    py: 1.2,
-                    cursor: "pointer",
-                    transition: "transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease",
-                    '&:hover': {
-                      bgcolor: alpha(SNNPR_COLORS.primary, 0.9),
-                      boxShadow: `0 10px 20px ${alpha(SNNPR_COLORS.primary, 0.18)}`,
-                      transform: "translateY(-2px)",
-                    },
-                  }}
-                >
-                  Sign In
-                </Button>
+                
                 <Button
                   component={Link}
                   to="/reports"
@@ -215,24 +202,30 @@ const LandingPage = () => {
             </Stack>
           </Grid>
           <Grid item xs={12} md={6}>
-            <Stack spacing={3}>
+            <Stack id="inline-login" spacing={3} sx={{ width: "100%", maxWidth: 520, ml: { md: "auto" } }}>
               <Card
                 sx={{
                   borderRadius: 3,
-                  boxShadow: `0 12px 30px ${alpha(SNNPR_COLORS.primary, 0.12)}`,
-                  border: `1px solid ${alpha(SNNPR_COLORS.primary, 0.1)}`,
-                  transition: "transform 180ms ease, box-shadow 180ms ease",
+                  overflow: "hidden",
+                  boxShadow: `0 16px 36px ${alpha(SNNPR_COLORS.primary, 0.14)}`,
+                  border: `1px solid ${alpha(SNNPR_COLORS.primary, 0.12)}`,
+                  transition: "transform 200ms ease, box-shadow 200ms ease",
                   cursor: "pointer",
                   '&:hover': {
                     transform: "translateY(-4px)",
-                    boxShadow: `0 16px 34px ${alpha(SNNPR_COLORS.primary, 0.16)}`,
+                    boxShadow: `0 20px 40px ${alpha(SNNPR_COLORS.primary, 0.2)}`,
                   },
                 }}
               >
-                <CardContent>
-                  <Typography sx={{ color: SNNPR_COLORS.dark, mb: 2, fontWeight: 700 }}>Sign in</Typography>
+                <Box sx={{ px: 3, pt: 2.5, pb: 0, display: "flex", alignItems: "center", gap: 1.5 }}>
+                  <ShieldIcon sx={{ color: SNNPR_COLORS.primary }} />
+                  <Typography sx={{ color: SNNPR_COLORS.dark, fontWeight: 700 }}>Secure access</Typography>
+                </Box>
+                <Divider sx={{ borderColor: alpha(SNNPR_COLORS.primary, 0.12) }} />
+                <CardContent sx={{ pt: 3 }}>
+                  <Typography sx={{ color: SNNPR_COLORS.dark, mb: 1, fontWeight: 700, fontSize: "1.15rem" }}>Sign in</Typography>
                   <Typography sx={{ color: SNNPR_COLORS.gray, mb: 2, fontSize: 14 }}>
-                    Enter your credentials to access the portal.
+                    Use your assigned credentials. Sessions are protected with role-based access.
                   </Typography>
 
                   {error && (
@@ -242,9 +235,10 @@ const LandingPage = () => {
                   )}
 
                   <Box component="form" noValidate onSubmit={handleInlineLogin}>
-                    <Stack spacing={2}>
+                    <Stack spacing={2.2}>
                       <TextField
                         label="Email"
+                        placeholder="you@example.com"
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
@@ -254,13 +248,18 @@ const LandingPage = () => {
                       />
                       <TextField
                         label="Password"
+                        placeholder="••••••••"
                         type="password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required
                         fullWidth
                         autoComplete="current-password"
+                        helperText="Minimum 8 characters"
                       />
+                      <Typography sx={{ color: SNNPR_COLORS.gray, fontSize: 13 }}>
+                        Need help? Contact your admin.
+                      </Typography>
                       <Button
                         type="submit"
                         variant="contained"
@@ -283,52 +282,6 @@ const LandingPage = () => {
                 </CardContent>
               </Card>
 
-              <Card
-                sx={{
-                  borderRadius: 3,
-                  boxShadow: `0 12px 30px ${alpha(SNNPR_COLORS.primary, 0.12)}`,
-                  border: `1px solid ${alpha(SNNPR_COLORS.primary, 0.1)}`,
-                  transition: "transform 180ms ease, box-shadow 180ms ease",
-                  cursor: "pointer",
-                  '&:hover': {
-                    transform: "translateY(-4px)",
-                    boxShadow: `0 16px 34px ${alpha(SNNPR_COLORS.primary, 0.16)}`,
-                  },
-                }}
-              >
-                <CardContent>
-                  <Typography sx={{ color: SNNPR_COLORS.dark, mb: 1, fontWeight: 700 }}>Quick snapshot</Typography>
-                  <Typography sx={{ color: SNNPR_COLORS.gray, mb: 3 }}>Cases, zones, and partners in one view.</Typography>
-                  <Box sx={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 2 }}>
-                    {[
-                      { label: "Cases Managed", value: "2,150+" },
-                      { label: "Zones Covered", value: "13" },
-                      { label: "Active Users", value: "480+" },
-                      { label: "Data Accuracy", value: "98.7%" },
-                    ].map((item) => (
-                      <Box
-                        key={item.label}
-                        sx={{
-                          p: 2,
-                          borderRadius: 2,
-                          bgcolor: alpha(SNNPR_COLORS.primary, 0.05),
-                          border: `1px solid ${alpha(SNNPR_COLORS.primary, 0.1)}`,
-                          cursor: "pointer",
-                          transition: "transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease",
-                          '&:hover': {
-                            transform: "translateY(-3px)",
-                            boxShadow: `0 10px 18px ${alpha(SNNPR_COLORS.primary, 0.12)}`,
-                            bgcolor: alpha(SNNPR_COLORS.primary, 0.08),
-                          },
-                        }}
-                      >
-                        <Typography sx={{ color: SNNPR_COLORS.dark, fontWeight: 700 }}>{item.value}</Typography>
-                        <Typography sx={{ color: SNNPR_COLORS.gray, fontSize: 13 }}>{item.label}</Typography>
-                      </Box>
-                    ))}
-                  </Box>
-                </CardContent>
-              </Card>
             </Stack>
           </Grid>
         </Grid>
@@ -397,24 +350,7 @@ const LandingPage = () => {
                 <Typography sx={{ color: SNNPR_COLORS.gray, lineHeight: 1.6 }}>
                   Southern Nations, Nationalities, and Peoples' Region platform for coordinated child safety.
                 </Typography>
-                <Button
-                  component={Link}
-                  to="/login"
-                  variant="contained"
-                  sx={{
-                    alignSelf: "flex-start",
-                    bgcolor: SNNPR_COLORS.primary,
-                    cursor: "pointer",
-                    transition: "transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease",
-                    '&:hover': {
-                      bgcolor: alpha(SNNPR_COLORS.primary, 0.9),
-                      boxShadow: `0 10px 20px ${alpha(SNNPR_COLORS.primary, 0.18)}`,
-                      transform: "translateY(-2px)",
-                    },
-                  }}
-                >
-                  Go to Login
-                </Button>
+                
               </Stack>
             </Grid>
 

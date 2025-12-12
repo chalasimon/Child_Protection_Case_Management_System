@@ -153,6 +153,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/focal-persons', [UserController::class, 'getFocalPersons']);
         Route::post('/{id}/activate', [UserController::class, 'activateUser']);
         Route::post('/{id}/deactivate', [UserController::class, 'deactivateUser']);
+        // Admin: change another user's password
+        Route::post('/{id}/change-password', [UserController::class, 'changeUserPassword']);
     });
 
     /*

@@ -11,4 +11,5 @@ export const userApi = {
   getFocalPersons: () => api.get('/users/focal-persons'), // Fixed endpoint
   activateUser: (id) => api.post(`/users/${id}/activate`),
   deactivateUser: (id) => api.post(`/users/${id}/deactivate`),
+  changeUserPassword: (id, data) => api.post(`/users/${id}/change-password`, data),
 }

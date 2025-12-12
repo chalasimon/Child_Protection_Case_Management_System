@@ -8,7 +8,6 @@ import ProtectedRoute from './components/ProtectedRoute'
 import RoleProtectedRoute from './components/RoleProtectedRoute'
 
 // Pages - code-splitting via React.lazy
-const Login = lazy(() => import('./components/Auth/Login'))
 const DashboardPage = lazy(() => import('./pages/DashboardPage'))
 const UsersPage = lazy(() => import('./pages/UsersPage'))
 const CasesPage = lazy(() => import('./pages/CasesPage'))
@@ -20,6 +19,7 @@ const ReportsPage = lazy(() => import('./pages/ReportsPage'))
 const Unauthorized = lazy(() => import('./pages/Unauthorized'))
 const Settings = lazy(() => import('./pages/Settings'))
 const LandingPage = lazy(() => import('./pages/LandingPage'))
+const SearchPage = lazy(() => import('./pages/SearchPage'))
 
 // If you have ProfilePage, add it too
 import ProfilePage from './pages/ProfilePage'
@@ -47,7 +47,7 @@ function App() {
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<LandingPage />} />
-          <Route path="/login" element={<Login />} />
+          <Route path="/login" element={<Navigate to="/" replace />} />
           <Route path="/unauthorized" element={<Unauthorized />} />
           
           {/* Protected Routes with MainLayout - ALL routes inside require auth */}
@@ -64,6 +64,7 @@ function App() {
               <Route path="/children" element={<ChildrenPage />} />
               <Route path="/incidents" element={<IncidentsPage />} />
               <Route path="/reports" element={<ReportsPage />} />
+              <Route path="/search" element={<SearchPage />} />
               
               {/* Profile Page - if you want it */}
               <Route path="/profile" element={<ProfilePage />} />

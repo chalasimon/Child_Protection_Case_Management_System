@@ -46,11 +46,19 @@ const MainLayout = () => {
   const [notificationsAnchorEl, setNotificationsAnchorEl] = useState(null)
   const [notifications, setNotifications] = useState([])
   const [unreadCount, setUnreadCount] = useState(0)
+  const [searchValue, setSearchValue] = useState('')
   const navigate = useNavigate()
   const location = useLocation()
   const dispatch = useDispatch()
   
   const { user } = useSelector((state) => state.auth)
+
+  // Keep search field in sync with current URL query (?q=...)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    const q = params.get('q') || ''
+    setSearchValue(q)
+  }, [location.search])
 
   const menuItems = [
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
@@ -104,6 +112,12 @@ const MainLayout = () => {
     navigate('/login')
   }
 
+  const handleSearchSubmit = (e) => {
+    e?.preventDefault()
+    const term = searchValue.trim()
+    navigate(term ? `/search?q=${encodeURIComponent(term)}` : '/search')
+  }
+
   const drawer = (
     <Box sx={{ overflow: 'auto' }}>
       {/* Logo Section */}
@@ -141,13 +155,20 @@ const MainLayout = () => {
                 mx: 1,
                 mb: 0.5,
                 '&.Mui-selected': {
-                  bgcolor: 'primary.light',
-                  color: 'primary.main',
+                  bgcolor: 'primary.main',
+                  color: 'common.white',
                   '&:hover': {
-                    bgcolor: 'primary.light',
+                    bgcolor: 'primary.main',
                   },
                   '& .MuiListItemIcon-root': {
-                    color: 'primary.main',
+                    color: 'common.white',
+                  },
+                },
+                '&:hover': {
+                  bgcolor: 'primary.main',
+                  color: 'common.white',
+                  '& .MuiListItemIcon-root': {
+                    color: 'common.white',
                   },
                 },
               }}
@@ -195,6 +216,8 @@ const MainLayout = () => {
           {/* Search Bar */}
           <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center' }}>
             <Box
+              component="form"
+              onSubmit={handleSearchSubmit}
               sx={{
                 display: 'flex',
                 alignItems: 'center',
@@ -206,9 +229,11 @@ const MainLayout = () => {
                 width: '100%',
               }}
             >
-              <SearchIcon sx={{ color: 'text.secondary', mr: 1 }} />
+              <SearchIcon sx={{ color: 'text.secondary', mr: 1, cursor: 'pointer' }} onClick={handleSearchSubmit} />
               <input
                 type="text"
+                value={searchValue}
+                onChange={(e) => setSearchValue(e.target.value)}
                 placeholder="Search cases, victims, perpetrators..."
                 style={{
                   border: 'none',
