@@ -119,7 +119,7 @@ const LandingPage = () => {
                   Child Protection Case Management
                 </Typography>
                 <Typography sx={{ color: "text.secondary", fontSize: 13 }}>
-                  Southern Nations, Nationalities, and Peoples' Region
+                  Gamo Zone, Ethiopia
                 </Typography>
               </Box>
             </Stack>
