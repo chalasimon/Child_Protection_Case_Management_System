@@ -46,7 +46,7 @@ jobs:
 
       # Directory permissions
       - name: Set Permissions
-        run: chmod -R 775 storage bootstrap/cache
+        run: chmod -R 777 storage bootstrap/cache
 
       # -------------------------------
       # Setup Node.js (React + Vite)
