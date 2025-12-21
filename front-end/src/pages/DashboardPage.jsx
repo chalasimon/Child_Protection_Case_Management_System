@@ -556,7 +556,7 @@ const DashboardPage = () => {
                   Monthly Case Trends
                 </Typography>
                 <Typography sx={{ color: SNNPR_COLORS.gray, fontSize: '0.875rem' }}>
-                  SNNPR Region - Last 6 Months
+                  Arba Minch Zuriya  - Last 6 Months
                 </Typography>
               </Box>
             </Box>
@@ -627,10 +627,10 @@ const DashboardPage = () => {
               }} />
               <Box>
                 <Typography sx={{ color: SNNPR_COLORS.dark, fontSize: '1.125rem' }}>
-                  Zone Distribution
+                  Woreda Distribution
                 </Typography>
                 <Typography sx={{ color: SNNPR_COLORS.gray, fontSize: '0.875rem' }}>
-                  Cases by SNNPR Zone
+                  Cases by Arba Minch Zuriya 
                 </Typography>
               </Box>
             </Box>
@@ -671,7 +671,7 @@ const DashboardPage = () => {
                 fontSize: '0.875rem',
                 textAlign: 'center',
               }}>
-                Top Zones by Case Volume
+                Top Areas by Case Volume
               </Typography>
               <Grid container spacing={1}>
                 {zoneData.slice(0, 6).map((zone, index) => (
@@ -730,7 +730,7 @@ const DashboardPage = () => {
                   Recent Cases
                 </Typography>
                 <Typography sx={{ color: SNNPR_COLORS.gray, fontSize: '0.875rem' }}>
-                  New cases requiring attention in SNNPR
+                  New cases requiring attention in Arba Minch Zuriya
                 </Typography>
               </Box>
               <Chip
