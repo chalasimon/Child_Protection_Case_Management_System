@@ -116,7 +116,7 @@ const LandingPage = () => {
               <ShieldIcon color="primary" sx={{ fontSize: 30 }} />
               <Box>
                 <Typography sx={{ color: "text.primary", fontWeight: 800, letterSpacing: 0.2 }}>
-                  Child Protection Case Management
+                  Child and Women  Case Management System
                 </Typography>
                 <Typography sx={{ color: "text.secondary", fontSize: 13 }}>
                   Gamo Zone, Ethiopia
@@ -131,17 +131,6 @@ const LandingPage = () => {
                 sx={{ textTransform: "none", fontWeight: 600 }}
               >
                 Sign in
-              </Button>
-              <Button
-                onClick={() => navigate("/dashboard")}
-                variant="contained"
-                color="primary"
-                sx={{
-                  textTransform: "none",
-                  fontWeight: 700,
-                }}
-              >
-                Open dashboard
               </Button>
             </Stack>
           </Stack>
@@ -275,7 +264,7 @@ const LandingPage = () => {
         <Box id="features" sx={{ mt: { xs: 6, md: 10 } }}>
           <Typography variant="h5" sx={{ textAlign: "center", fontWeight: 800, mb: 1 }}>Built for regional teams</Typography>
           <Typography sx={{ textAlign: "center", color: "text.secondary", mb: 4, lineHeight: 1.6 }}>
-            A focused set of capabilities to support consistent, secure child protection workflows.
+            A focused set of capabilities to support consistent, secure child and Women protection workflows.
           </Typography>
           <Grid container spacing={3}>
             {features.map((feat) => (
@@ -327,7 +316,7 @@ const LandingPage = () => {
                   <Typography sx={{ color: "text.primary", fontWeight: 800 }}>Child Protection System</Typography>
                 </Stack>
                 <Typography sx={{ color: "text.secondary", lineHeight: 1.6 }}>
-                  Southern Nations, Nationalities, and Peoples' Region platform for coordinated child safety.
+                  Arba Minch Zuriya platform for coordinated child and Women safety.
                 </Typography>
                 
               </Stack>
@@ -362,9 +351,10 @@ const LandingPage = () => {
             <Grid item xs={12} sm={6} md={4}>
               <Stack spacing={1.5}>
                 <Typography sx={{ color: "text.primary", fontWeight: 800 }}>Contact</Typography>
-                <Typography sx={{ color: "text.secondary" }}>Regional Admin Desk</Typography>
-                <Typography sx={{ color: "text.secondary" }}>Email: support@snnpr.gov.et</Typography>
-                <Typography sx={{ color: "text.secondary" }}>Phone: +251-11-000-0000</Typography>
+                <Typography sx={{ color: "text.secondary" }}> System Admin</Typography>
+                <Typography sx={{ color: "text.secondary" }}>Email: Pisoftware.solution40@gmail.com</Typography>
+                <Typography sx={{ color: "text.secondary" }}>Phone:+251983906296</Typography>
+                  
               </Stack>
             </Grid>
           </Grid>
@@ -373,7 +363,7 @@ const LandingPage = () => {
 
           <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems="center" sx={{ mt: 0 }}>
             <Typography sx={{ color: "text.secondary", fontSize: 13 }}>
-              © {new Date().getFullYear()} SNNPR Child Protection. All rights reserved.
+              © {new Date().getFullYear()}   Arba Minch Zuriya Child and Women Protection. All rights reserved.
             </Typography>
             <Typography sx={{ color: "text.secondary", fontSize: 13 }}>
               Data handled securely with role-based access.
