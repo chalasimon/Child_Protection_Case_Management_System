@@ -147,7 +147,7 @@ const MainLayout = () => {
         </Avatar>
         <Box>
           <Typography variant="h6" sx={{ fontWeight: 700 }}>
-            Child Protection
+            Child and Women 
           </Typography>
           <Typography variant="caption" color="text.secondary">
             Case Management
